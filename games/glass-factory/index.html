@@ -1047,5 +1047,11 @@ function frame(now){
 setupTitle();
 requestAnimationFrame(frame);
 </script>
+
+<script>/* TRIGGER HAPPY ARCADE: hold Esc for 1 second, press Home, or hold Select+Start on a gamepad to return to the game menu */
+(function(){var t=null,done=false,go=function(){if(done)return;done=true;location.href='../../index.html';};
+addEventListener('keydown',function(e){if(e.key==='Home')go();if(e.key==='Escape'&&!t&&!e.repeat)t=setTimeout(go,1000);},true);
+addEventListener('keyup',function(e){if(e.key==='Escape'&&t){clearTimeout(t);t=null;}},true);
+(function poll(){var ps=navigator.getGamepads?navigator.getGamepads():[];for(var i=0;i<ps.length;i++){var p=ps[i];if(p&&p.buttons[8]&&p.buttons[9]&&p.buttons[8].pressed&&p.buttons[9].pressed)go();}requestAnimationFrame(poll);})();})();</script>
 </body>
 </html>
