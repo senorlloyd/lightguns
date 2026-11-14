@@ -1662,9 +1662,5 @@ function probe(list) {
 }
 window.G = { get panic() { return panic; }, get peak() { return peakPanic; }, set freezeFx(v) { freeze = v; }, get mode() { return mode; }, get sm() { return sm; }, get score() { return score; }, get lives() { return lives; }, get level() { return level; }, get pullsDone() { return pullsDone; }, pinHit, pinPos, startMode, probe: (l) => probe(l || legal()), get babyFrame() { return babyFrame; }, get layers() { return Math.max(...blocks.map(b => b.gd.layer)) + 1; }, get types() { return blocks.map(b => b.gd.type).join(','); }, _go(r){ roundNum=r-1; pickBG(false); roundNum=r-1; roundWins=[0,0]; nextRound(); finishBuild(); },  get att(){ return window.__attempts; }, get state() { return state; }, get blocks() { return blocks; }, get crown() { return crown; }, shoot, startMatch, get roundWins() { return roundWins; }, get cur() { return cur; }, get mustPull() { return mustPull; }, legal, isLocked };
 </script>
-<script>/* TRIGGER HAPPY ARCADE: hold Esc for 1 second, press Home, or hold Select+Start on a gamepad to return to the game menu */
-(function(){var t=null,done=false,go=function(){if(done)return;done=true;location.href='../../index.html';};
-addEventListener('keydown',function(e){if(e.key==='Home')go();if(e.key==='Escape'&&!t&&!e.repeat)t=setTimeout(go,1000);},true);
-addEventListener('keyup',function(e){if(e.key==='Escape'&&t){clearTimeout(t);t=null;}},true);
-(function poll(){var ps=navigator.getGamepads?navigator.getGamepads():[];for(var i=0;i<ps.length;i++){var p=ps[i];if(p&&p.buttons[8]&&p.buttons[9]&&p.buttons[8].pressed&&p.buttons[9].pressed)go();}requestAnimationFrame(poll);})();})();</script>
+<script src="../../arcade-back.js"></script>
 </body></html>
