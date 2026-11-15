@@ -70,6 +70,7 @@ const GAMES = [
   { title:'Shatter Range',      file:'games/shatter-range/index.html',      players:[1,2], genre:'SHOOTING GALLERY',blurb:'Plates, bottles, glass. Everything breaks.',                colors:['#ffd24d','#4dd2ff'], demo:'shatter',  banner:null, video:null },
   { title:'Slow Shot',          file:'games/slow-shot/index.html',          players:[1,1], genre:'TIME SHOOTER',    blurb:'Time moves only when you move.',                            colors:['#ff2b2b','#e8e8e8'], demo:'slowshot', banner:null, video:null },
   { title:'SplatterStrike',     file:'games/splatterstrike/index.html',     players:[2,2], genre:'PAINT BATTLE',    blurb:'Sixty seconds. Most paint on the screen wins.',             colors:['#1e7bff','#ff8a1e'], demo:'splatter', banner:null, video:null },
+  { title:'Puck Shot',          file:'games/puck-shot/index.html',          players:[1,2], genre:'AIR HOCKEY',      blurb:'No paddles. Your shots shove the puck.',                    colors:['#2a8bff','#ff8a1e'], demo:'puckshot', banner:null, video:null },
   { title:'Bubble Battle',      file:'games/bubble-battle/index.html',      players:[2,2], genre:'PUZZLE VERSUS',   blurb:'Pop three or more and bury your rival in rows.',            colors:['#b45cff','#3bf0ff'], demo:'bubble',   banner:null, video:null },
   { title:'Goose Hunt',         file:'games/goose-hunt/index.html',         players:[1,1], genre:'HUNTING',         blurb:'Honk if you missed. The dog is watching.',                  colors:['#5fb7ff','#7ad04a'], demo:'goose',    banner:null, video:null },
   { title:'Glass Factory',      file:'games/glass-factory/index.html',      players:[1,1], genre:'QUALITY CONTROL', blurb:'Smash the rejects. Let the good glass through.',            colors:['#3bf0d0','#ff4040'], demo:'glass',    banner:null, video:null },
@@ -922,6 +923,61 @@ DEMOS.splatter = {
     hud(c, Math.round(a * 100) + '%', 160, 64, '#1e7bff', 28); hud(c, Math.round(b * 100) + '%', VW - 160, 64, '#ff8a1e', 28, 'right');
     c.fillStyle = '#111'; c.beginPath(); c.arc(VW / 2, 37, 40, 0, TAU); c.fill(); hud(c, String(Math.ceil(s.time)), VW / 2, 20, '#fff', 34, 'center', FONT);
     s.gs.forEach(g => { drawCross(c, g.x, g.y, g.col, g.flash, 1, g.label); if (g.frozen > 0) { c.fillStyle = 'rgba(160,230,255,.6)'; c.beginPath(); c.arc(g.x, g.y, 34, 0, TAU); c.fill(); } });
+  }
+};
+
+/* ---------- Puck Shot ---------- */
+DEMOS.puckshot = {
+  init(s) {
+    s.gs = [mkGun('#2a8bff', 'P1'), mkGun('#ff8a1e', 'P2')]; s.gs[0].x = 360; s.gs[1].x = 920;
+    s.sc = [0, 0]; s.rings = []; s.wait = 0; this.serve(s);
+  },
+  serve(s) { s.pk = { x: VW / 2, y: VH / 2 + 10, vx: rnd(-120, 120), vy: rnd(-200, 200), r: 26, last: -1, trail: [] }; },
+  update(s, dt) {
+    const L = 70, R = 1210, T = 96, B = 676, CY = 386, GH = 105, pk = s.pk;
+    if (s.wait > 0) { s.wait -= dt; if (s.wait <= 0) { if (s.sc[0] >= 5 || s.sc[1] >= 5) s.sc = [0, 0]; this.serve(s); } }
+    else {
+      pk.x += pk.vx * dt; pk.y += pk.vy * dt; const f = Math.exp(-0.32 * dt); pk.vx *= f; pk.vy *= f;
+      if (pk.y - pk.r < T) { pk.y = T + pk.r; pk.vy = Math.abs(pk.vy); } if (pk.y + pk.r > B) { pk.y = B - pk.r; pk.vy = -Math.abs(pk.vy); }
+      const inMouth = Math.abs(pk.y - CY) < GH - 8;
+      if (pk.x - pk.r < L && !inMouth) { pk.x = L + pk.r; pk.vx = Math.abs(pk.vx); } if (pk.x + pk.r > R && !inMouth) { pk.x = R - pk.r; pk.vx = -Math.abs(pk.vx); }
+      if (pk.x < L - pk.r || pk.x > R + pk.r) {
+        const w = pk.x < L ? 1 : 0; s.sc[w]++; s.wait = 1.8; popText(s, VW / 2, 300, 'GOAL!', s.gs[w].col, 90);
+        addParts(s.p, pk.x < L ? L : R, pk.y, 50, { col: s.gs[w].col, shape: 'circ', size: 7, min: 150, max: 700, life: 0.9 });
+      }
+      pk.trail.push(pk.x, pk.y); if (pk.trail.length > 24) pk.trail.splice(0, 2);
+    }
+    s.gs.forEach((g, i) => gunStep(g, dt, () => {
+      if (s.wait > 0) return null;
+      let gx = (i ? L : R) - pk.x, gy = CY - pk.y; const d = Math.hypot(gx, gy) || 1;
+      return { x: pk.x + pk.vx * 0.12 - gx / d * 60 + rnd(-40, 40), y: pk.y + pk.vy * 0.12 - gy / d * 60 + rnd(-40, 40), r: 40 };
+    }, (gg, t) => {
+      s.rings.push({ x: t.x, y: t.y, t: 0, col: g.col });
+      let dx = pk.x - t.x, dy = pk.y - t.y; const d = Math.hypot(dx, dy) || 1;
+      if (d < 216) { const dv = 220 + 730 * Math.pow(clamp(1 - (d - 26) / 190, 0, 1), 0.8); pk.vx += dx / d * dv; pk.vy += dy / d * dv; pk.last = i; const sp = Math.hypot(pk.vx, pk.vy); if (sp > 1500) { pk.vx *= 1500 / sp; pk.vy *= 1500 / sp; } }
+      addParts(s.p, t.x, t.y, 8, { col: g.col, shape: 'circ', size: 4, min: 100, max: 400, life: 0.35 });
+    }));
+    for (const r of s.rings) r.t += dt * 3.2; s.rings = s.rings.filter(r => r.t < 1);
+    updParts(s.p, dt);
+  },
+  draw(c, s) {
+    const L = 70, R = 1210, T = 96, B = 676, CY = 386, GH = 105, pk = s.pk, cols = ['#2a8bff', '#ff8a1e'];
+    c.fillStyle = '#05060c'; c.fillRect(0, 0, VW, VH);
+    c.strokeStyle = '#101632'; c.lineWidth = 1; c.beginPath(); for (let x = L; x <= R; x += 57) { c.moveTo(x, T); c.lineTo(x, B); } for (let y = T; y <= B; y += 58) { c.moveTo(L, y); c.lineTo(R, y); } c.stroke();
+    c.globalAlpha = 0.07; c.fillStyle = cols[0]; c.fillRect(L, T, VW / 2 - L, B - T); c.fillStyle = cols[1]; c.fillRect(VW / 2, T, R - VW / 2, B - T); c.globalAlpha = 1;
+    c.strokeStyle = '#39407a'; c.lineWidth = 3; c.beginPath(); c.moveTo(VW / 2, T); c.lineTo(VW / 2, B); c.moveTo(VW / 2 + 90, CY); c.arc(VW / 2, CY, 90, 0, TAU); c.stroke();
+    c.strokeStyle = '#c8d4ff'; c.lineWidth = 4; c.beginPath(); c.moveTo(L, CY - GH); c.lineTo(L, T); c.lineTo(R, T); c.lineTo(R, CY - GH); c.moveTo(R, CY + GH); c.lineTo(R, B); c.lineTo(L, B); c.lineTo(L, CY + GH); c.stroke();
+    [L, R].forEach((wx, i) => { const sg = i ? 1 : -1; c.globalAlpha = 0.18; c.fillStyle = cols[i]; c.fillRect(Math.min(wx, wx + sg * 52), CY - GH, 52, GH * 2); c.globalAlpha = 1; c.strokeStyle = cols[i]; c.lineWidth = 4; c.beginPath(); c.moveTo(wx, CY - GH); c.lineTo(wx + sg * 52, CY - GH); c.lineTo(wx + sg * 52, CY + GH); c.lineTo(wx, CY + GH); c.stroke(); });
+    if (s.wait <= 0) {
+      const col = pk.last < 0 ? '#fff' : cols[pk.last], n = pk.trail.length / 2;
+      for (let k = 0; k < n; k++) { c.globalAlpha = k / n * 0.3; c.fillStyle = col; c.beginPath(); c.arc(pk.trail[k * 2], pk.trail[k * 2 + 1], pk.r * (0.35 + 0.6 * k / n), 0, TAU); c.fill(); }
+      c.globalAlpha = 1; c.fillStyle = '#0b0e1c'; c.beginPath(); c.arc(pk.x, pk.y, pk.r, 0, TAU); c.fill(); c.strokeStyle = col; c.lineWidth = 5; c.stroke();
+      c.strokeStyle = '#fff'; c.lineWidth = 2; c.beginPath(); c.arc(pk.x, pk.y, pk.r * 0.5, 0, TAU); c.stroke();
+    }
+    for (const r of s.rings) { c.globalAlpha = 1 - r.t; c.strokeStyle = r.col; c.lineWidth = 10 * (1 - r.t) + 2; c.beginPath(); c.arc(r.x, r.y, 190 * (0.15 + 0.85 * Math.sqrt(r.t)), 0, TAU); c.stroke(); }
+    c.globalAlpha = 1; drawParts(c, s.p, true);
+    hud(c, String(s.sc[0]), VW / 2 - 60, 12, cols[0], 64, 'right', FONT); hud(c, String(s.sc[1]), VW / 2 + 60, 12, cols[1], 64, 'left', FONT);
+    s.gs.forEach(g => drawCross(c, g.x, g.y, g.col, g.flash, 1, g.label));
   }
 };
 
