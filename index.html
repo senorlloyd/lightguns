@@ -72,6 +72,7 @@ const GAMES = [
   { title:'SplatterStrike',     file:'games/splatterstrike/index.html',     players:[2,2], genre:'PAINT BATTLE',    blurb:'Sixty seconds. Most paint on the screen wins.',             colors:['#1e7bff','#ff8a1e'], demo:'splatter', banner:null, video:null },
   { title:'Puck Shot',          file:'games/puck-shot/index.html',          players:[1,2], genre:'AIR HOCKEY',      blurb:'No paddles. Your shots shove the puck.',                    colors:['#2a8bff','#ff8a1e'], demo:'puckshot', banner:null, video:null },
   { title:'Bubble Battle',      file:'games/bubble-battle/index.html',      players:[2,2], genre:'PUZZLE VERSUS',   blurb:'Pop three or more and bury your rival in rows.',            colors:['#b45cff','#3bf0ff'], demo:'bubble',   banner:null, video:null },
+  { title:'Bank Job',           file:'games/bank-job/index.html',           players:[1,1], genre:'RICOCHET PUZZLE', blurb:'One bullet. Every lock. Bank it off the walls.',            colors:['#ffc93b','#3bf0ff'], demo:'bankjob',  banner:null, video:null },
   { title:'Goose Hunt',         file:'games/goose-hunt/index.html',         players:[1,1], genre:'HUNTING',         blurb:'Honk if you missed. The dog is watching.',                  colors:['#5fb7ff','#7ad04a'], demo:'goose',    banner:null, video:null },
   { title:'Glass Factory',      file:'games/glass-factory/index.html',      players:[1,1], genre:'QUALITY CONTROL', blurb:'Smash the rejects. Let the good glass through.',            colors:['#3bf0d0','#ff4040'], demo:'glass',    banner:null, video:null },
   { title:'Carnival Games',     file:'games/carnival-games/index.html',     players:[1,2], genre:'MIDWAY',          blurb:'Step right up! Tin ducks, stars and bullseyes.',            colors:['#ff3040','#ffe14d'], demo:'carnival', banner:null, video:null }
@@ -978,6 +979,59 @@ DEMOS.puckshot = {
     c.globalAlpha = 1; drawParts(c, s.p, true);
     hud(c, String(s.sc[0]), VW / 2 - 60, 12, cols[0], 64, 'right', FONT); hud(c, String(s.sc[1]), VW / 2 + 60, 12, cols[1], 64, 'left', FONT);
     s.gs.forEach(g => drawCross(c, g.x, g.y, g.col, g.flash, 1, g.label));
+  }
+};
+
+/* ---------- Bank Job ---------- */
+DEMOS.bankjob = {
+  init(s) { s.g = mkGun('#ffffff', ''); s.gun = [150, 600]; this.round(s); },
+  round(s) {
+    for (let tries = 0; tries < 40; tries++) { this.layout(s); const ok = s.locks.every((l, i) => Math.hypot(l.x - s.gun[0], l.y - s.gun[1]) > 130 && l.x > 110 && l.x < 1170 && l.y > 160 && l.y < 630 && s.locks.every((m, j) => j === i || Math.hypot(l.x - m.x, l.y - m.y) > 110)); if (ok) break; }
+  },
+  layout(s) {
+    const L = 60, T = 110, R = 1220, B = 680, ang = rnd(-1.2, -0.4);
+    let x = s.gun[0] + Math.cos(ang) * 34, y = s.gun[1] + Math.sin(ang) * 34, dx = Math.cos(ang), dy = Math.sin(ang);
+    const pts = [[x, y, 0]];
+    for (let k = 0; k < 4; k++) {
+      const tx = dx > 0 ? (R - x) / dx : (L - x) / dx, ty = dy > 0 ? (B - y) / dy : (T - y) / dy, u = Math.min(tx, ty);
+      x += dx * u; y += dy * u; pts.push([x, y, pts[pts.length - 1][2] + u]); if (tx < ty) dx = -dx; else dy = -dy;
+    }
+    s.pts = pts; s.ang = ang; s.d = 0; s.phase = 'aim'; s.wait = 0; s.trail = [];
+    s.locks = [1, 2, 3].map(k => { const a = pts[k], b = pts[k + 1], f = rnd(0.3, 0.7); return { x: a[0] + (b[0] - a[0]) * f, y: a[1] + (b[1] - a[1]) * f, d: a[2] + (b[2] - a[2]) * f, hit: false }; });
+    s.aim = { x: s.gun[0] + Math.cos(ang) * 430, y: s.gun[1] + Math.sin(ang) * 430, r: 26 };
+  },
+  pos(s) { const P = s.pts; for (let k = 1; k < P.length; k++) if (s.d <= P[k][2]) { const f = (s.d - P[k - 1][2]) / (P[k][2] - P[k - 1][2]); return [P[k - 1][0] + (P[k][0] - P[k - 1][0]) * f, P[k - 1][1] + (P[k][1] - P[k - 1][1]) * f, k]; } const e = P[P.length - 1]; return [e[0], e[1], P.length]; },
+  update(s, dt) {
+    gunStep(s.g, dt, () => s.phase === 'aim' ? s.aim : null, () => { s.phase = 'fly'; addParts(s.p, s.gun[0] + Math.cos(s.ang) * 34, s.gun[1] + Math.sin(s.ang) * 34, 10, { col: '#ffc93b', ang: s.ang, spread: 0.5, min: 150, max: 500, life: 0.3 }); });
+    if (s.phase === 'fly') {
+      const prev = this.pos(s)[2]; s.d += 1150 * dt; const now = this.pos(s);
+      if (now[2] !== prev && now[2] < s.pts.length) addParts(s.p, s.pts[prev][0], s.pts[prev][1], 10, { col: '#fff', min: 80, max: 380, life: 0.4 });
+      for (const l of s.locks) if (!l.hit && s.d >= l.d) { l.hit = true; addParts(s.p, l.x, l.y, 18, { col: ['#ffc93b', '#fff7c2'], shape: 'circ', size: 5, min: 120, max: 460, g: 900, life: 0.9 }); popText(s, l.x, l.y - 40, '$', '#ffc93b', 34); }
+      if (s.d >= s.pts[s.pts.length - 1][2]) { s.phase = 'done'; s.wait = 2.2; popText(s, VW / 2, 330, 'VAULT CRACKED!', '#ffc93b', 64); }
+    } else if (s.phase === 'done') { s.wait -= dt; if (s.wait <= 0) this.round(s); }
+    updParts(s.p, dt);
+  },
+  draw(c, s) {
+    const L = 60, T = 110, R = 1220, B = 680, ang = s.phase === 'aim' ? Math.atan2(s.g.y - s.gun[1], s.g.x - s.gun[0]) : s.ang;
+    c.fillStyle = '#04060a'; c.fillRect(0, 0, VW, VH); c.fillStyle = '#070b14'; c.fillRect(L, T, R - L, B - T);
+    c.strokeStyle = '#0f182e'; c.lineWidth = 10; for (const r of [120, 200, 280]) { c.beginPath(); c.arc(VW / 2, (T + B) / 2, r, 0, TAU); c.stroke(); }
+    c.strokeStyle = '#a9bcff'; c.lineWidth = 4; c.strokeRect(L, T, R - L, B - T);
+    for (const l of s.locks) {
+      if (l.hit) { c.globalAlpha = 0.25; c.strokeStyle = '#ffc93b'; c.lineWidth = 2; c.beginPath(); c.arc(l.x, l.y, 22, 0, TAU); c.stroke(); c.globalAlpha = 1; continue; }
+      c.fillStyle = '#1a1406'; c.beginPath(); c.arc(l.x, l.y, 22, 0, TAU); c.fill(); c.strokeStyle = '#ffc93b'; c.lineWidth = 4; c.stroke();
+      c.fillStyle = '#ffc93b'; c.beginPath(); c.arc(l.x, l.y - 4, 5, 0, TAU); c.fill(); c.fillRect(l.x - 3, l.y - 2, 6, 11);
+    }
+    if (s.phase === 'aim') { c.strokeStyle = 'rgba(255,255,255,.5)'; c.lineWidth = 2; c.setLineDash([3, 9]); c.beginPath(); c.moveTo(s.pts[0][0], s.pts[0][1]); c.lineTo(s.pts[1][0], s.pts[1][1]); c.stroke(); c.setLineDash([]); }
+    else {
+      const b = this.pos(s); c.strokeStyle = '#ffc93b'; c.globalAlpha = 0.6; c.lineWidth = 3; c.beginPath(); c.moveTo(s.pts[0][0], s.pts[0][1]);
+      for (let k = 1; k < b[2] && k < s.pts.length; k++) c.lineTo(s.pts[k][0], s.pts[k][1]); c.lineTo(b[0], b[1]); c.stroke(); c.globalAlpha = 1;
+      if (s.phase === 'fly') { c.fillStyle = 'rgba(255,201,59,.35)'; c.beginPath(); c.arc(b[0], b[1], 16, 0, TAU); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.arc(b[0], b[1], 6, 0, TAU); c.fill(); }
+    }
+    c.save(); c.translate(s.gun[0], s.gun[1]); c.rotate(ang); c.fillStyle = '#c9a23a'; c.fillRect(6, -6, 30, 12); c.restore();
+    c.fillStyle = '#141a2c'; c.beginPath(); c.arc(s.gun[0], s.gun[1], 20, 0, TAU); c.fill(); c.strokeStyle = '#ffc93b'; c.lineWidth = 3; c.stroke();
+    drawParts(c, s.p, true);
+    hud(c, 'BANK JOB', 64, 40, '#ffc93b', 40, 'left', FONT); hud(c, 'ONE BULLET. EVERY LOCK.', 64 + 270, 54, '#c8d4ff', 20, 'left');
+    drawCross(c, s.g.x, s.g.y, s.g.col, s.g.flash, 1, '');
   }
 };
 
