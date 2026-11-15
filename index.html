@@ -72,6 +72,7 @@ const GAMES = [
   { title:'SplatterStrike',     file:'games/splatterstrike/index.html',     players:[2,2], genre:'PAINT BATTLE',    blurb:'Sixty seconds. Most paint on the screen wins.',             colors:['#1e7bff','#ff8a1e'], demo:'splatter', banner:null, video:null },
   { title:'Puck Shot',          file:'games/puck-shot/index.html',          players:[1,2], genre:'AIR HOCKEY',      blurb:'No paddles. Your shots shove the puck.',                    colors:['#2a8bff','#ff8a1e'], demo:'puckshot', banner:null, video:null },
   { title:'Bubble Battle',      file:'games/bubble-battle/index.html',      players:[2,2], genre:'PUZZLE VERSUS',   blurb:'Pop three or more and bury your rival in rows.',            colors:['#b45cff','#3bf0ff'], demo:'bubble',   banner:null, video:null },
+  { title:'Rough Ride',         file:'games/rough-ride/index.html',         players:[1,2], genre:'JEEP RAIL SHOOTER', blurb:'Ride the jeep. The robot army is right behind you.',     colors:['#ffd23f','#3c9a44'], demo:'roughride', banner:null, video:null },
   { title:'Bank Job',           file:'games/bank-job/index.html',           players:[1,1], genre:'RICOCHET PUZZLE', blurb:'One bullet. Every lock. Bank it off the walls.',            colors:['#ffc93b','#3bf0ff'], demo:'bankjob',  banner:null, video:null },
   { title:'Goose Hunt',         file:'games/goose-hunt/index.html',         players:[1,1], genre:'HUNTING',         blurb:'Honk if you missed. The dog is watching.',                  colors:['#5fb7ff','#7ad04a'], demo:'goose',    banner:null, video:null },
   { title:'Glass Factory',      file:'games/glass-factory/index.html',      players:[1,1], genre:'QUALITY CONTROL', blurb:'Smash the rejects. Let the good glass through.',            colors:['#3bf0d0','#ff4040'], demo:'glass',    banner:null, video:null },
@@ -1032,6 +1033,54 @@ DEMOS.bankjob = {
     drawParts(c, s.p, true);
     hud(c, 'BANK JOB', 64, 40, '#ffc93b', 40, 'left', FONT); hud(c, 'ONE BULLET. EVERY LOCK.', 64 + 270, 54, '#c8d4ff', 20, 'left');
     drawCross(c, s.g.x, s.g.y, s.g.col, s.g.flash, 1, '');
+  }
+};
+
+/* ---------- Rough Ride ---------- */
+DEMOS.roughride = {
+  init(s) {
+    s.c = document.createElement('canvas'); s.c.width = 320; s.c.height = 180; s.x = s.c.getContext('2d'); s.x.imageSmoothingEnabled = false;
+    s.z = 0; s.g = mkGun('#4fc3ff', 'P1'); s.bots = []; s.spawn = 0.5; s.booms = [];
+    const D = ["kkkkkk...", "...k.....", "...kkkkkk", "....kgggg", "....kglll", "....kglRR", "....kgggg", ".....kddd"], P = { k:'#14101e', g:'#6b7088', l:'#a8b0c4', d:'#3a3a4e', R:'#ff4a3c' };
+    s.drone = document.createElement('canvas'); s.drone.width = 18; s.drone.height = 8; const dx = s.drone.getContext('2d');
+    D.forEach((r, y) => { const row = r + r.split('').reverse().join(''); for (let x = 0; x < row.length; x++) if (P[row[x]]) { dx.fillStyle = P[row[x]]; dx.fillRect(x, y, 1, 1); } });
+  },
+  update(s, dt) {
+    s.z += dt * 26; s.spawn -= dt;
+    if (s.spawn <= 0 && s.bots.length < 3) { s.spawn = rnd(0.8, 1.6); s.bots.push({ d: 1, x: rnd(-0.8, 0.8), h: rnd(0.3, 0.9), t: 0, td: rnd(0.32, 0.5), ph: rnd(0, TAU) }); }
+    for (const b of s.bots) { b.t += dt; b.d += (b.td - b.d) * Math.min(1, dt * 1.2); }
+    gunStep(s.g, dt, () => { const b = s.bots.find(q => q.d < 0.6 && !q.dead); return b ? b.sp : null; }, (gg, t) => {
+      const b = s.bots.find(q => q.sp === t); if (!b) return;
+      b.dead = true; s.booms.push({ x: t.x / 4, y: t.y / 4, t: 0 }); addParts(s.p, t.x, t.y, 22, { col: ['#ffd23f', '#f08a24', '#ff4a3c', '#6b7088'], shape: 'sq', size: 9, min: 120, max: 520, g: 300, life: 0.7 }); popText(s, t.x, t.y - 40, '100', '#fff', 30);
+    });
+    s.bots = s.bots.filter(b => !b.dead);
+    for (const b of s.booms) b.t += dt; s.booms = s.booms.filter(b => b.t < 0.5);
+    updParts(s.p, dt);
+  },
+  draw(c, s) {
+    const x = s.x, H0 = 66;
+    const sky = ['#24346c', '#345094', '#4a72b6', '#6e9ccf', '#a2c6dc']; sky.forEach((col, i) => { x.fillStyle = col; x.fillRect(0, i * 14, 320, 14); });
+    x.fillStyle = '#5a7aa2'; for (let i = 0; i < 320; i++) { const h = 12 + Math.sin(i / 30 + s.z * 0.004) * 6 + Math.sin(i / 11) * 3; x.fillRect(i, H0 - h, 1, h); }
+    x.fillStyle = '#1d5a2c'; for (let i = 0; i < 320; i++) { const h = 6 + Math.abs(Math.sin(i / 9 + s.z * 0.01)) * 5; x.fillRect(i, H0 - h, 1, h + 2); }
+    for (let y = H0; y < 180; y++) {
+      const p = (y - H0) / (180 - H0), d = 1 / Math.max(0.02, p), w = 150 * p, cx = 160 + Math.sin(s.z * 0.05) * 40 * (1 - p) * (1 - p), alt = Math.floor(d * 3 + s.z) % 2;
+      x.fillStyle = alt ? '#3f9a3a' : '#378c33'; x.fillRect(0, y, 320, 1);
+      x.fillStyle = alt ? '#6b4a2a' : '#c8a070'; x.fillRect(cx - w * 1.14, y, w * 2.28, 1);
+      x.fillStyle = alt ? '#b08a5a' : '#a8824f'; x.fillRect(cx - w, y, w * 2, 1);
+      x.fillStyle = '#94704a'; x.fillRect(cx - w * 0.5 - 1, y, Math.max(1, w * 0.08), 1); x.fillRect(cx + w * 0.5 - 1, y, Math.max(1, w * 0.08), 1);
+    }
+    for (const b of s.bots.slice().sort((a, b2) => b2.d - a.d)) {
+      const p = 1 - b.d, sc = 0.4 + p * 2.4, bx = 160 + b.x * 120 * p + Math.sin(b.t * 2 + b.ph) * 10, by = H0 + 10 + p * 40 - b.h * 50 * p + Math.sin(b.t * 3) * 2;
+      const w = 18 * sc, h = 8 * sc; x.drawImage(s.drone, Math.round(bx - w / 2), Math.round(by - h / 2), Math.round(w), Math.round(h));
+      b.sp = { x: bx * 4, y: by * 4, r: 30 };
+    }
+    for (const b of s.booms) { const r = 3 + b.t * 30; x.fillStyle = b.t < 0.15 ? '#fff3a0' : b.t < 0.3 ? '#ffd23f' : '#f08a24'; x.beginPath(); x.arc(b.x, b.y, r, 0, TAU); x.fill(); }
+    x.fillStyle = '#14101e'; x.fillRect(0, 160, 320, 20); x.fillStyle = '#4a5a30'; x.fillRect(2, 162, 316, 18); x.fillStyle = '#6a7a44'; x.fillRect(2, 162, 316, 2);
+    x.fillStyle = '#14101e'; x.fillRect(4, 120, 12, 60); x.fillRect(304, 120, 12, 60); x.fillStyle = '#4a5a30'; x.fillRect(6, 120, 8, 60); x.fillRect(306, 120, 8, 60);
+    c.imageSmoothingEnabled = false; c.drawImage(s.c, 0, 0, VW, VH); c.imageSmoothingEnabled = true;
+    drawParts(c, s.p, true);
+    hud(c, 'ROUGH RIDE', 40, 30, '#ffd23f', 54, 'left', FONT); hud(c, 'STAGE 1: JUNGLE RUN', 44, 92, '#ffffff', 22, 'left');
+    drawCross(c, s.g.x, s.g.y, s.g.col, s.g.flash, 1, s.g.label);
   }
 };
 
