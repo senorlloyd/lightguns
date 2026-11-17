@@ -292,6 +292,22 @@ ART.turret = () => sym(22, 20, x => {
   pg(x, [[2, 20], [4, 13], [11, 13], [11, 20]], 'D'); R(x, 4, 13, 7, 1, 'A'); blob(x, 11, 8, 7, 'A'); blob(x, 10, 6, 4, 'B'); R(x, 5, 7, 6, 2, 'x'); R(x, 6, 7, 5, 1, 'R');
 }, x => { blob(x, 11, 12, 3, 'x'); blob(x, 11, 12, 2, 'g'); blob(x, 11, 12, 1, 'x'); }, 91, 4, 2);
 
+ART.tanker = () => sym(58, 46, x => {          // fuel tanker, seen from behind (you chase these)
+  tread(x, 3, 31, 10, 14); R(x, 13, 32, 2, 12, 'd'); R(x, 15, 34, 14, 8, 'x'); R(x, 17, 36, 12, 2, 'd'); R(x, 4, 32, 8, 6, 'x');
+  R(x, 3, 27, 26, 5, 'D'); R(x, 3, 27, 26, 1, 'B'); R(x, 6, 28, 4, 3, 'R'); R(x, 6, 28, 2, 1, 'Y'); R(x, 12, 28, 3, 3, 'o');
+}, x => {
+  blob(x, 29, 15, 15, 'd'); blob(x, 29, 15, 14, 'g'); blob(x, 26, 12, 9, 'l'); blob(x, 29, 15, 9, 'g');
+  for (const a of [0.6, 2.2, 3.8, 5.4]) R(x, Math.round(29 + Math.cos(a) * 12), Math.round(15 + Math.sin(a) * 12), 1, 1, 'x');
+  pg(x, [[29, 6], [38, 15], [29, 24], [20, 15]], 'y'); pg(x, [[29, 8], [36, 15], [29, 22], [22, 15]], 'o'); pg(x, [[29, 10], [32, 16], [29, 20], [26, 16]], 'R');
+  R(x, 45, 4, 1, 24, 'x'); for (let y = 6; y < 28; y += 4) R(x, 45, y, 3, 1, 'x');
+}, 53, 5, 3);
+ART.guntruck = () => sym(50, 40, x => {        // pickup with a rear-facing gun, seen from behind
+  tread(x, 3, 26, 8, 13); R(x, 10, 27, 2, 11, 'd'); R(x, 12, 30, 13, 7, 'x');
+  pg(x, [[11, 18], [12, 8], [25, 8], [25, 18]], 'A'); R(x, 14, 10, 11, 6, 'z'); pl(x, 15, 14, 18, 11, 'Z'); R(x, 12, 7, 13, 1, 'D');
+  R(x, 7, 17, 18, 12, 'A'); R(x, 7, 17, 18, 2, 'B'); R(x, 9, 21, 16, 1, 'D'); R(x, 9, 25, 16, 1, 'D');
+  R(x, 8, 21, 3, 4, 'R'); R(x, 8, 21, 1, 1, 'Y'); R(x, 6, 29, 19, 3, 'D'); R(x, 6, 29, 19, 1, 'B'); R(x, 9, 3, 1, 15, 'x'); R(x, 9, 3, 16, 1, 'x');
+}, x => { R(x, 24, 9, 2, 9, 'x'); R(x, 21, 1, 8, 6, 'D'); R(x, 21, 1, 8, 1, 'B'); R(x, 22, 3, 6, 1, 'R'); blob(x, 25, 12, 4, 'x'); blob(x, 25, 12, 3, 'g'); blob(x, 25, 12, 1, 'x'); R(x, 19, 11, 3, 2, 'D'); R(x, 29, 11, 3, 2, 'D'); }, 67, 5, 3);
+
 /* side-view gunship (Hind-style) that rises beside the jeep during the jump */
 ART.gunship = () => outline(mk(150, 58, x => {
   pg(x, [[86, 22], [140, 17], [140, 22], [88, 32]], 'A'); pg(x, [[86, 22], [140, 17], [140, 18], [86, 24]], 'B');
@@ -339,8 +355,8 @@ ART.vulture = () => sym(160, 76, x => {         // VULTURE: heavy coaxial gunshi
   blob(x, 22, 48, 6, 'x'); blob(x, 137, 48, 6, 'x'); blob(x, 80, 50, 8, 'D'); blob(x, 80, 50, 6, 'x');
   R(x, 78, 60, 4, 12, 'x'); R(x, 74, 3, 12, 2, 'x'); R(x, 76, 8, 8, 2, 'x'); pg(x, [[76, 40], [80, 37], [84, 40], [82, 40], [80, 39], [78, 40]], 'R');
 }, 9, 30, 5);
-const VULTURE = { name:'VULTURE', art:'vulture', upx:20, td:2900, h:500, fly:true, eye:[81, 51], rotors:[[81, 4, 158], [81, 9, 140]],
-  cores:[{ x:23, y:49, hp:16, ph:0 }, { x:138, y:49, hp:16, ph:0 }, { x:81, y:51, hp:36, ph:1 }], say:['GUNSHIP BOSS! TAKE OUT ITS ROCKET PODS!', 'PODS ARE GONE! HIT THE NOSE!'] };
+const VULTURE = { name:'VULTURE', art:'vulture', upx:20, td:2900, h:500, fly:true, flyover:true, eye:[81, 51], rotors:[[81, 4, 158], [81, 9, 140]],
+  cores:[{ x:23, y:49, hp:16, ph:0 }, { x:138, y:49, hp:16, ph:0 }, { x:81, y:51, hp:36, ph:1 }], say:['GUNSHIP BOSS! IT WILL TRY TO GET AHEAD OF US!', 'PODS ARE GONE! HIT THE NOSE!'] };
 ART.mammoth = () => sym(126, 90, x => {         // FROST MAMMOTH: armoured snow crawler with a plough
   tread(x, 1, 56, 26, 34, 4); R(x, 23, 57, 4, 32, 'd');
   pg(x, [[4, 57], [8, 30], [63, 30], [63, 63], [27, 63], [27, 57]], 'A'); R(x, 8, 30, 55, 2, 'B'); R(x, 30, 32, 1, 30, 'D'); R(x, 7, 44, 56, 1, 'D');
@@ -350,8 +366,8 @@ ART.mammoth = () => sym(126, 90, x => {         // FROST MAMMOTH: armoured snow 
   for (let i = 0; i < 6; i++) pg(x, [[14 + i * 9, 89], [19 + i * 9, 82], [23 + i * 9, 82], [18 + i * 9, 89]], i % 2 ? 'k' : 'y');
   pg(x, [[40, 72], [28, 60], [34, 74]], 'w');
 }, x => { blob(x, 18, 21, 6, 'x'); blob(x, 107, 21, 6, 'x'); blob(x, 63, 22, 9, 'D'); blob(x, 61, 20, 5, 'A'); blob(x, 63, 22, 6, 'x'); pl(x, 96, 11, 100, 0, 'k'); }, 13, 30, 6);
-const MAMMOTH = { name:'FROST MAMMOTH', art:'mammoth', upx:19, td:2700, h:0, eye:[64, 23], rocks:true,
-  cores:[{ x:19, y:22, hp:18, ph:0 }, { x:108, y:22, hp:18, ph:0 }, { x:64, y:23, hp:40, ph:1 }], say:['FROST MAMMOTH! SHOOT THE MISSILE RACKS!', 'RACKS ARE DOWN! HIT THE DOME!'] };
+const MAMMOTH = { name:'FROST MAMMOTH', art:'mammoth', upx:19, td:2700, h:0, eye:[64, 23], rocks:true, shutter:true, minions:'sled',
+  cores:[{ x:19, y:22, hp:14, ph:0 }, { x:108, y:22, hp:14, ph:0 }, { x:64, y:23, hp:32, ph:1 }], say:['FROST MAMMOTH! ITS ARMOR ONLY OPENS AFTER IT FIRES!', 'RACKS ARE DOWN! HIT THE DOME!'] };
 ART.colossus = () => sym(96, 92, x => {         // COLOSSUS: two-legged walker
   pg(x, [[5, 92], [8, 84], [28, 84], [31, 92]], 'D'); R(x, 8, 84, 20, 1, 'B');
   pg(x, [[13, 84], [12, 62], [23, 62], [24, 84]], 'A'); R(x, 12, 62, 3, 22, 'B'); R(x, 20, 64, 1, 18, 'D');
@@ -365,9 +381,9 @@ ART.colossus = () => sym(96, 92, x => {         // COLOSSUS: two-legged walker
   R(x, 37, 0, 22, 10, 'D'); R(x, 37, 0, 22, 1, 'B'); blob(x, 48, 5, 4, 'x'); pl(x, 60, 2, 64, -4, 'k');
   pg(x, [[43, 20], [48, 15], [53, 20], [51, 20], [48, 17], [45, 20]], 'R');
 }, 29, 26, 5);
-const COLOSSUS = { name:'COLOSSUS', art:'colossus', upx:24, td:3300, h:0, eye:[49, 6], walk:true,
+const COLOSSUS = { name:'COLOSSUS', art:'colossus', upx:24, td:3300, h:0, eye:[49, 6], walk:true, minions:'drone',
   cores:[{ x:19, y:61, hp:14, ph:0 }, { x:78, y:61, hp:14, ph:0 }, { x:11, y:24, hp:16, ph:1 }, { x:86, y:24, hp:16, ph:1 }, { x:49, y:6, hp:44, ph:2 }],
-  say:['COLOSSUS! TAKE OUT ITS KNEES!', 'NOW THE SHOULDER CANNONS!', 'THE EYE! HIT THE EYE!'] };
+  say:['COLOSSUS! TAKE OUT ITS KNEES! WATCH FOR DRONES!', 'NOW THE SHOULDER CANNONS!', 'THE EYE! HIT THE EYE!'] };
 
 /* ---------- the player's jeep ---------- */
 ART.jeepBack = () => mk(320, 52, x => {
@@ -429,6 +445,9 @@ SPR.radar = outline(mk(26, 30, x => { pl(x, 13, 29, 13, 16, 'K2', 3); pg(x, [[8,
 SPR.container = outline(mk(40, 18, x => { R(x, 0, 0, 40, 18, '#8a3a2a'); R(x, 0, 0, 40, 2, '#b05038'); for (let i = 2; i < 40; i += 3) R(x, i, 2, 1, 16, '#6e2c20'); R(x, 14, 6, 12, 6, 'w'); ftext(x, 'X9', 15, 6, 'k'); }));
 SPR.rwl = mk(5, 4, x => { R(x, 0, 1, 5, 3, 'K3'); R(x, 1, 0, 3, 3, 'c'); R(x, 2, 0, 1, 1, 'w'); });
 SPR.mine = outline(mk(12, 7, x => { blob(x, 6, 5, 5, 'd', 0.6); R(x, 1, 5, 10, 2, 'u'); R(x, 5, 0, 2, 3, 'g'); R(x, 5, 0, 2, 1, 'R'); }));
+SPR.log = outline(mk(46, 13, x => { R(x, 0, 2, 46, 10, 'n'); R(x, 0, 4, 46, 1, 't'); R(x, 0, 10, 46, 2, 'N'); for (const i of [9, 19, 31, 39]) R(x, i, 5, 1, 5, 'N'); R(x, 0, 2, 46, 2, 'W1'); R(x, 18, 0, 9, 2, 'W1'); blob(x, 4, 7, 4, 't'); blob(x, 4, 7, 2, 'n'); blob(x, 42, 7, 4, 'N'); }));
+SPR.iceblock = outline(mk(22, 20, x => { pg(x, [[0, 20], [2, 4], [8, 0], [18, 1], [22, 8], [21, 20]], 'I1'); pg(x, [[2, 4], [8, 0], [18, 1], [14, 7], [5, 8]], 'I2'); pg(x, [[14, 7], [22, 8], [21, 20], [13, 20]], '#3a7ab8'); R(x, 6, 3, 5, 1, 'w'); pl(x, 5, 9, 7, 18, 'I2'); }));
+SPR.sltower = outline(mk(26, 64, x => { pl(x, 4, 63, 8, 22, 'K2', 2); pl(x, 21, 63, 17, 22, 'K2', 2); for (let i = 0; i < 4; i++){ pl(x, 5 + i, 58 - i * 10, 20 - i, 50 - i * 10, 'K1'); pl(x, 20 - i, 58 - i * 10, 5 + i, 50 - i * 10, 'K1'); } R(x, 3, 16, 20, 7, 'K1'); R(x, 3, 16, 20, 1, 'K2'); R(x, 4, 0, 18, 16, 'K3'); R(x, 4, 0, 18, 1, 'K2'); blob(x, 13, 8, 6, 'Y'); blob(x, 12, 7, 3, 'w'); }));
 
 /* ---------- themes: enemy camo, backdrops, dust ---------- */
 const THEMES = {
@@ -568,20 +587,21 @@ function signFor(label, left){ const k = label + left; return signCache[k] || (s
 const trk = { c:[], y:[], g:[] }; let curY = 0;
 let EV = [], evI = 0, FORKT = 1e9, CH = [], HOPS = [], hopI = 0, LOOP = null;
 function addSeg(c, y, gr){ trk.c.push(c); trk.y.push(y); trk.g.push(gr); }
-function sect(sec, curve, hill, gr){
-  const n = Math.max(1, Math.round(sec * SPS)), y0 = curY;
+function sect(sec, curve, hill, gr, mul){        // mul > 1: a stretch driven faster than normal (pair it with spd(mul))
+  const n = Math.max(1, Math.round(sec * SPS * (mul || 1))), y0 = curY; tcur += sec;
   for (let i = 0; i < n; i++){ const f = i / n, ramp = Math.min(1, f / 0.2, (1 - f) / 0.2); addSeg(curve * ramp, y0 + hill * (1 - Math.cos(Math.PI * f)) / 2, gr); }
   curY = y0 + hill;
 }
 /* Events are placed relative to "now" = the point in the stage where the track built so far ends.
    So: at(2, f) followed by sect(5, ...) fires f two seconds into that 5-second stretch of road. */
-const now = () => trk.c.length / SPS;
+let tcur = 0;
+const now = () => tcur;
 const at = (dt, f) => EV.push([now() + dt, f]);
 const rep = (dt, n, gap, f) => { for (let i = 0; i < n; i++) at(dt + i * gap, () => f(i)); };
 function chasm(sec, gr, onJump, onLand){
   const y = curY, s = trk.c.length * SEG, n = Math.round(sec * SPS);
   for (let i = 0; i < n; i++) addSeg(0, y - 2600 - (i % 7) * 40, gr);
-  CH.push({ s, e: trk.c.length * SEG, y, onJump, onLand, done:false }); curY = y;
+  CH.push({ s, e: trk.c.length * SEG, y, onJump, onLand, done:false }); curY = y; tcur += sec;
 }
 const hopHere = () => HOPS.push(trk.c.length * SEG);
 function hills(gr, list){ for (const [upS, h, dnS, cv] of list){ sect(upS, cv, h, gr); hopHere(); sect(dnS, 0, -h, gr); } }
@@ -593,7 +613,7 @@ function fork(g){
 }
 function roadblock(g, msg, nTur){ at(0, sayf(msg)); at(0.8, tf); at(1.8, () => spawnBarricade(nTur)); sect(7, 0, 0, g); }
 function buildStage(route){
-  trk.c = []; trk.y = []; trk.g = []; curY = 0; EV = []; CH = []; HOPS = []; LOOP = null; FORKT = 1e9;
+  trk.c = []; trk.y = []; trk.g = []; curY = 0; tcur = 0; EV = []; CH = []; HOPS = []; LOOP = null; FORKT = 1e9;
   ST.build(route || ST.routes[0]);
   addSeg(0, curY, trk.g[trk.g.length - 1]);
   EV.sort((a, b) => a[0] - b[0]);
@@ -614,6 +634,8 @@ const tf = () => turn_('front'), tb = () => turn_('back');
 const bossf = def => () => { spawnBoss(def); setMusic('boss'); say(def.say[0]); };
 const rock = () => fireRocket(rand(50, 270), rand(HORIZON - 40, HORIZON - 5), { kind:'rock', dur: rand(1.5, 1.9) });
 const quake = (line, t) => () => { say(line, 2); quakeT = t || 2.5; };
+const spd = m => () => { speedMul = m; };
+function mines(n){ for (let i = 0; i < n; i++) spawnE('mine', { d: 22000 + i * 900, px: rand(-720, 720) }); }
 
 /* ---------- the four stages ---------- */
 const STAGES = [
@@ -650,92 +672,93 @@ const STAGES = [
       at(0.5, crate('REPAIR')); at(2, quake('WHAT IS THAT?!')); at(4.4, bossf(RHINO));
       sect(4, 0, -200, g); loopSect(() => { sect(4, 2, 300, 'plain'); sect(4, -2, -300, 'plain'); sect(4, -1, 250, 'plain'); sect(4, 1, -250, 'plain'); });
     } },
-  { name:'DESERT CANYON', short:'DESERT', theme:'desert', music:'desert', routes:['CANYON', 'DUNES'], par:210000,
-    build(route){
+  { name:'DESERT CANYON', short:'DESERT', theme:'desert', music:'desert', routes:['CANYON', 'DUNES'], par:205000,
+    build(route){                                   // signature: sandstorm, then YOU hunt a fuel convoy through a minefield
       const g = 'sand';
       at(0.3, ban('STAGE 2', 'DESERT CANYON')); at(1.2, sayf('OUT OF THE JUNGLE, INTO THE FRYING PAN!'));
-      rep(3.5, 3, 1, sp('uav')); at(7, sayf('HUMVEES ON OUR SIX!')); rep(8, 2, 2.5, sp('humvee')); rep(11.5, 3, 0.8, sp('bike')); at(14.5, crate('SPREAD'));
-      sect(5, 0, 0, g); sect(5, 3, 300, g); sect(6, -3, -300, g);
-      at(0.3, sayf('TANK! IT TAKES A BEATING. KEEP FIRING!')); at(1.5, sp('tank')); rep(6, 3, 0.8, sp('uav')); at(9, crate('REPAIR')); rep(10, 2, 1, sp('bike')); at(13, sp('humvee'));
-      sect(6, 2, 400, g); sect(6, -2, -400, g); sect(4, 0, 0, g);
-      at(0, sayf('SANDSTORM! WATCH FOR THEIR LIGHTS!')); rep(2, 3, 0.8, sp('eyebot')); rep(6, 2, 0.9, sp('uav', { lit:true })); rep(9, 4, 0.6, sp('eyebot')); at(12.5, sp('humvee', { lit:true })); at(15, crate('RAPID'));
+      rep(3.5, 4, 0.9, sp('uav')); at(7.5, sp('humvee')); rep(9, 3, 0.8, sp('bike')); at(11.5, sayf('TANK! IT TAKES A BEATING. KEEP FIRING!')); at(12.5, sp('tank'));
+      at(15, crate('SPREAD')); rep(16, 3, 0.8, sp('uav'));
+      sect(5, 0, 0, g); sect(5, 3, 300, g); sect(6, -3, -300, g); sect(4, 2, 0, g);
+      at(0, sayf('SANDSTORM! WATCH FOR THEIR LIGHTS!')); rep(2, 4, 0.7, sp('eyebot')); rep(6, 2, 0.9, sp('uav', { lit:true })); rep(9, 4, 0.6, sp('eyebot')); at(12.5, sp('humvee', { lit:true })); rep(14, 3, 0.6, sp('eyebot'));
       sect(6, 2, 0, 'storm'); sect(6, -2, 0, 'storm'); sect(5, 1, 0, 'storm'); sect(1.5, 0, 0, g);
       fork(g); at(0.6, tb);
       if (route === 'CANYON'){
-        at(1.4, sayf('SLOT CANYON! SHOOT THE FALLING ROCKS!')); rep(3, 3, 0.9, sp('bike')); rep(6, 4, 1.1, rock); rep(9, 2, 0.8, sp('uav')); at(12, sp('humvee')); rep(15, 5, 0.9, rock);
-        at(17, crate('BOOM')); rep(20, 3, 0.8, sp('bike')); at(23, sp('tank')); rep(26, 4, 1, rock); rep(30, 3, 0.7, sp('uav')); at(33, crate('SPREAD')); rep(34, 2, 0.8, sp('bike'));
-        sect(2.8, 0, 0, g); sect(7, 2, -200, 'slot'); sect(7, -3, 0, 'slot'); sect(7, 3, 100, 'slot'); sect(7, -2, 0, 'slot'); sect(8, 2, 100, 'slot');
+        at(1.4, sayf('SLOT CANYON! SHOOT THE FALLING ROCKS!')); rep(3, 3, 0.9, sp('bike')); rep(6, 5, 1, rock); rep(9, 3, 0.8, sp('uav')); at(12, sp('humvee')); rep(15, 5, 0.9, rock);
+        at(17, crate('BOOM')); rep(20, 3, 0.8, sp('bike')); at(22, sp('tank')); rep(25, 4, 0.9, rock);
+        sect(2.8, 0, 0, g); sect(7, 2, -200, 'slot'); sect(7, -3, 0, 'slot'); sect(7, 3, 100, 'slot'); sect(6, -2, 0, 'slot');
       } else {
         at(1.4, sayf('DUNES! THIS IS GONNA BE BUMPY!')); rep(3, 2, 2, sp('humvee')); rep(7, 3, 0.8, sp('bike')); at(10, sayf('ATTACK CHOPPER! AIM FOR THE BODY!')); at(10.5, sp('heli')); rep(14, 3, 0.7, sp('uav'));
-        at(17, crate('BOOM')); at(19, sp('tank')); rep(22, 3, 0.8, sp('bike')); at(26, sp('heli')); rep(29, 2, 2, sp('humvee')); at(33, crate('SPREAD')); rep(34, 3, 0.7, sp('uav'));
-        sect(2.8, 0, 0, g); hills('dunes', [[4, 1000, 3, 2], [5, 800, 3, -3], [5, 1300, 4, 3], [5, 700, 4, -2]]); sect(5, 0, 0, 'dunes');
+        at(17, crate('BOOM')); at(19, sp('tank')); rep(22, 3, 0.8, sp('bike')); at(25, sp('heli'));
+        sect(2.8, 0, 0, g); hills('dunes', [[4, 1000, 3, 2], [5, 1300, 4, -3], [5, 800, 3, 3]]); sect(3, 0, 0, 'dunes');
       }
-      at(0, sayf("ROPE BRIDGE! CHOPPERS INCOMING!")); at(2, sp('heli')); rep(4, 3, 0.8, sp('uav')); at(8, sp('heli')); rep(10, 2, 0.8, sp('uav')); at(12, crate('REPAIR'));
+      at(0, sayf('ENEMY FUEL CONVOY AHEAD! EYES FRONT!')); at(0.8, tf); at(2.4, sayf('BLOW THE TANKERS! SHOOT THE MINES BEFORE WE HIT THEM!'));
+      rep(2.5, 2, 1.2, sp('guntruck')); at(4.5, () => mines(3)); at(7, sp('tanker')); at(8.5, sp('guntruck')); at(10, () => mines(4)); rep(12, 2, 0.8, sp('uav'));
+      at(14, crate('REPAIR')); at(15, sp('tanker', { px:-420 })); at(16, sp('tanker', { px:420 })); rep(17, 2, 1, sp('guntruck')); at(19, () => mines(5)); at(23, sp('tanker'));
+      rep(24, 3, 0.8, sp('guntruck')); at(26, () => mines(4)); at(28.5, sp('heli')); at(30, crate('RAPID'));
+      sect(6, 0, 0, g); sect(7, 2, 200, g); sect(7, -2, -200, g); sect(7, 2, 0, g); sect(7, -1, 0, g);
+      at(0, sayf('ROPE BRIDGE! CHOPPERS ON OUR TAIL!')); at(0.8, tb); at(2.5, sp('heli')); rep(4, 3, 0.8, sp('uav')); at(8, sp('heli')); rep(10, 3, 0.8, sp('uav')); at(12.5, crate('REPAIR'));
       sect(2, 0, 0, g); sect(12, 0, 0, 'bridge'); sect(2, 0, 0, g);
-      roadblock(g, 'CHECKPOINT! BLAST THROUGH IT!', 2);
-      at(1.2, sayf('THE BRIDGE IS OUT! GUN IT!'));
-      sect(3, 0, 0, g); sect(2, 0, 450, 'dramp'); chasm(3, 'dchasm', () => spawnGunship(5), landGunship);
-      at(1.4, sayf('STILL IN ONE PIECE! EYES BACK!')); at(2.2, tb); rep(3.5, 2, 0.8, sp('bike')); at(5, sp('tank')); rep(8, 3, 0.7, sp('uav')); at(11, sp('heli')); at(13, crate('SPREAD')); rep(14, 2, 1.5, sp('humvee')); at(18.5, crate('REPAIR'));
-      sect(3, 0, -450, g); sect(6, 3, 0, g); sect(6, -3, 200, g); sect(5, 2, -200, g);
       at(0.5, quake('SOMETHING BIG ON RADAR!')); at(3, bossf(VULTURE));
       sect(3, 0, 0, g); loopSect(() => { sect(4, 2, 300, 'mesa'); sect(4, -2, -300, 'mesa'); sect(4, -1, 250, 'mesa'); sect(4, 1, -250, 'mesa'); });
     } },
-  { name:'SNOW PASS', short:'SNOW', theme:'snow', music:'snow', routes:['LAKE', 'PASS'], par:215000,
-    build(route){
+  { name:'SNOW PASS', short:'SNOW', theme:'snow', music:'snow', routes:['LAKE', 'PASS'], par:220000,
+    build(route){                                   // signature: outrun an avalanche downhill at speed, blasting whatever blocks the road
       const g = 'snow';
       at(0.3, ban('STAGE 3', 'SNOW PASS')); at(1.2, sayf('BUNDLE UP! THEY FOLLOWED US UP THE MOUNTAIN!'));
-      rep(3.5, 3, 0.9, sp('sled')); rep(7, 3, 0.8, sp('drone')); at(10, sayf('ARMORED CARRIER! POUR IT ON!')); at(11, sp('apc')); at(14.5, crate('SPREAD'));
-      sect(5, 0, 0, g); sect(5, -3, 400, g); sect(6, 3, 300, g);
-      rep(0.5, 3, 0.8, sp('sled')); at(4, sp('heli')); rep(7, 3, 0.7, sp('drone')); at(10, crate('REPAIR')); at(11, sp('apc')); rep(13, 2, 0.8, sp('sled'));
-      sect(6, 2, 300, g); sect(6, -2, -200, g); sect(5, 0, 0, g);
+      rep(3.5, 4, 0.8, sp('sled')); rep(7, 3, 0.8, sp('drone')); at(10, sayf('ARMORED CARRIER! POUR IT ON!')); at(11, sp('apc')); at(14, crate('SPREAD')); rep(15, 3, 0.7, sp('sled'));
+      at(18, sp('heli')); rep(21, 3, 0.7, sp('drone')); at(24, crate('REPAIR')); at(25, sp('apc'));
+      sect(5, 0, 0, g); sect(5, -3, 400, g); sect(6, 3, 300, g); sect(6, 2, 300, g); sect(6, -2, -200, g);
       fork(g); at(0.6, tb);
       if (route === 'LAKE'){
         at(1.4, sayf('FROZEN LAKE! NOWHERE TO HIDE OUT HERE!')); rep(3, 4, 0.7, sp('sled', { x:1400 })); at(7, sp('heli')); rep(10, 3, 0.7, sp('drone')); at(13, crate('BOOM'));
-        rep(15, 4, 0.7, sp('sled', { x:1400 })); at(19, sp('heli')); at(22, sp('apc')); rep(25, 3, 0.7, sp('drone')); at(28, crate('RAPID')); rep(29, 4, 0.7, sp('sled', { x:1400 })); at(33, sp('heli'));
-        sect(2.8, 0, 0, g); sect(7, 1, 0, 'ice'); sect(7, -2, 0, 'ice'); sect(7, 2, 0, 'ice'); sect(7, -1, 0, 'ice'); sect(8, 1, 0, 'ice');
+        rep(15, 4, 0.7, sp('sled', { x:1400 })); at(19, sp('heli')); at(22, sp('apc')); rep(24, 4, 0.6, sp('sled', { x:1400 }));
+        sect(2.8, 0, 0, g); sect(7, 1, 0, 'ice'); sect(7, -2, 0, 'ice'); sect(7, 2, 0, 'ice'); sect(6, -1, 0, 'ice');
       } else {
         at(1.4, sayf('HIGH PASS! MIND THE EDGE!')); at(3, sp('apc')); rep(6, 3, 0.8, sp('sled')); rep(9, 4, 1, rock); rep(13, 3, 0.7, sp('drone')); at(16, crate('BOOM')); at(18, sp('apc'));
-        rep(21, 4, 1, rock); rep(25, 3, 0.8, sp('sled')); at(28, crate('RAPID')); at(29, sp('heli')); rep(32, 3, 0.7, sp('drone'));
-        sect(2.8, 0, 0, g); hills('pass', [[4, 1000, 3, -2], [5, 1300, 4, 3], [5, 800, 3, -3], [5, 1100, 4, 2]]); sect(5, 0, 0, 'pass');
+        rep(21, 4, 1, rock); rep(24, 3, 0.8, sp('sled'));
+        sect(2.8, 0, 0, g); hills('pass', [[4, 1000, 3, -2], [5, 1300, 4, 3], [5, 900, 3, -3]]); sect(3, 0, 0, 'pass');
       }
-      at(0, () => { say('AVALANCHE!! SHOOT THE BOULDERS!', 2.2); quakeT = 16; sfx.roar(); }); rep(3, 13, 0.9, rock); at(8, crate('REPAIR'));
-      sect(2, 0, 0, g); sect(7, -2, -700, 'aval'); sect(7, 2, -700, 'aval');
-      at(0, sayf('ICE CAVE! SHOOT THE RED EYES!')); rep(2.5, 3, 0.7, sp('eyebot')); rep(5.5, 2, 0.8, sp('sled', { lit:true })); rep(8.5, 4, 0.6, sp('eyebot')); rep(12.5, 3, 0.6, sp('eyebot')); at(14.5, sp('drone', { lit:true }));
-      sect(1.5, 0, 0, g); sect(6, 2, 0, 'cave'); sect(6, -2, 0, 'cave'); sect(5, 1, 0, 'cave');
-      roadblock(g, 'ICE BARRICADE! BREAK IT!', 2);
-      at(1, sayf('CREVASSE! MISSILES INCOMING, SHOOT THEM DOWN!'));
-      sect(3, 0, 0, g); sect(2, 0, 450, 'sramp'); chasm(3, 'schasm', () => missileSalvo(6), null);
-      at(1.4, sayf('WE MADE IT! KEEP SHOOTING!')); at(2.2, tb); rep(3.5, 3, 0.7, sp('sled')); at(6, sp('apc')); at(8, sp('heli')); rep(10, 3, 0.7, sp('drone')); at(13, crate('SPREAD')); at(14, sp('apc')); at(17.5, crate('REPAIR'));
-      sect(3, 0, -450, g); sect(6, -3, 0, g); sect(6, 3, 200, g); sect(4.5, -2, -200, g);
+      at(0, () => { say('AVALANCHE!!', 1.2); quakeT = 25; sfx.roar(); }); rep(1.6, 5, 0.8, rock);
+      sect(1, 0, 0, g); sect(5.5, -2, -500, 'aval');
+      at(0, sayf("FLOOR IT! EYES FRONT, BLAST WHATEVER'S IN OUR WAY!", 1.8)); at(0.6, tf); at(1.2, spd(1.5));
+      const ob = (kind, ...xs) => () => xs.forEach(x => spawnE(kind, { d: 22000, px: x }));
+      at(1.6, ob('log', 0)); at(3.4, ob('ice', -420, 380)); at(5.2, ob('log', 220)); at(6.9, ob('ice', -600, 0, 560)); at(8.7, ob('log', -180)); at(10.3, ob('ice', 300, -300));
+      at(11.9, ob('log', 0)); at(12.6, ob('ice', 620)); at(13.9, ob('ice', -250, 250)); at(15.2, ob('log', 100)); at(18, spd(1));
+      sect(6.5, 2, -1100, g, 1.5); sect(6.5, -2, -1100, g, 1.5); sect(6, 1, -700, g, 1.5);
+      at(0, sayf('WE OUTRAN IT! INTO THAT CAVE! SHOOT THE RED EYES!')); at(0.8, tb);
+      rep(3, 4, 0.7, sp('eyebot')); rep(6.5, 2, 0.8, sp('sled', { lit:true })); rep(9, 4, 0.6, sp('eyebot')); rep(13, 4, 0.6, sp('eyebot')); at(15, sp('drone', { lit:true }));
+      sect(2, 0, 0, g); sect(6, 2, 0, 'cave'); sect(6, -2, 0, 'cave'); sect(5, 1, 0, 'cave');
+      at(0, sayf('CREVASSE AHEAD! EYES FRONT!')); at(0.8, tf); at(3, sayf('MISSILES INCOMING! SHOOT THEM DOWN!', 1.6));
+      sect(4.5, 0, 0, g); sect(2, 0, 450, 'sramp'); chasm(3, 'schasm', () => missileSalvo(7), null);
+      at(1.2, tb); rep(2.5, 3, 0.7, sp('sled')); at(5, sp('apc')); at(7, sp('heli')); rep(9, 3, 0.7, sp('drone')); at(12, crate('SPREAD')); at(13, sp('apc')); at(16, crate('REPAIR'));
+      sect(3, 0, -450, g); sect(6, -3, 0, g); sect(6, 3, 200, g); sect(3.5, -2, -200, g);
       at(0.5, quake('THE WHOLE MOUNTAIN IS SHAKING!')); at(3, bossf(MAMMOTH));
       sect(3, 0, 0, g); loopSect(() => { sect(4, 2, 300, 'tundra'); sect(4, -2, -300, 'tundra'); sect(4, -1, 250, 'tundra'); sect(4, 1, -250, 'tundra'); });
     } },
-  { name:'ENEMY BASE', short:'BASE', theme:'base', music:'base', routes:['HANGAR', 'DEPOT'], par:290000, startFront:true,
-    build(route){
+  { name:'ENEMY BASE', short:'BASE', theme:'base', music:'base', routes:['HANGAR', 'DEPOT'], par:280000, startFront:true,
+    build(route){                                   // signature: sneak past searchlights (miss one and the alarm brings reinforcements), then all-out war
       const g = 'base';
       at(0.3, ban('STAGE 4', 'ENEMY BASE')); at(1.2, sayf("THERE'S THEIR BASE. PUNCH THROUGH THE GATE!")); at(2.2, () => spawnBarricade(2));
       sect(8.5, 0, 0, g);
-      at(0, sayf('WE ARE IN! HERE THEY COME!')); at(0.8, tb); rep(2.5, 3, 0.8, sp('bike')); rep(5, 3, 0.7, sp('drone')); at(8, sp('humvee')); at(10, crate('SPREAD')); at(11, sp('tank')); rep(14, 2, 0.8, sp('bike'));
-      sect(5, 3, 0, g); sect(6, -3, 0, g); sect(5, 2, 0, g);
-      at(0, sp('heli')); at(2, sp('apc')); rep(5, 3, 0.7, sp('uav')); at(8, crate('REPAIR')); at(9, sp('humvee')); rep(11, 3, 0.8, sp('bike')); at(14, sp('heli'));
-      sect(6, -2, 0, g); sect(6, 2, 0, g); sect(4, 0, 0, g);
+      at(0, sayf('SEARCHLIGHTS! SHOOT THEM OUT BEFORE THEY SPOT US!')); rep(1.2, 6, 2.3, i => spawnE('slight', { d: 22000, px: (i % 2 ? 1 : -1) * 1500 })); rep(5, 2, 4, sp('drone', { td:[2400, 3000] }));
+      sect(8, 2, 0, g); sect(9.5, -2, 0, g);
+      at(0, sayf('THEY KNOW WE ARE HERE! EYES BACK!')); at(0.8, tb); rep(2.5, 3, 0.8, sp('bike')); rep(5, 3, 0.7, sp('drone')); at(8, sp('humvee')); at(10, crate('SPREAD')); at(11, sp('tank')); rep(13, 3, 0.8, sp('bike')); at(15, sp('heli'));
+      sect(5, 3, 0, g); sect(6, -3, 0, g); sect(6, 2, 0, g);
       fork(g); at(0.6, tb);
       if (route === 'HANGAR'){
         at(1.4, sayf('THROUGH THE HANGARS! GO GO GO!')); rep(3, 4, 0.6, sp('drone')); rep(6, 3, 0.8, sp('bike')); at(10, sp('humvee')); rep(13, 4, 0.6, sp('eyebot')); at(16, crate('BOOM'));
-        rep(18, 3, 0.8, sp('bike')); at(21, sp('apc')); rep(24, 4, 0.6, sp('drone')); at(28, crate('RAPID')); rep(29, 3, 0.8, sp('bike')); at(32, sp('humvee'));
-        sect(2.8, 0, 0, g); sect(7, 2, 0, 'hangar'); sect(7, -2, 0, 'hangar'); sect(7, 2, 0, 'hangar'); sect(7, -2, 0, 'hangar'); sect(8, 1, 0, 'hangar');
+        rep(18, 3, 0.8, sp('bike')); at(21, sp('apc')); rep(24, 4, 0.6, sp('drone')); at(27, crate('RAPID'));
+        sect(2.8, 0, 0, g); sect(7, 2, 0, 'hangar'); sect(7, -2, 0, 'hangar'); sect(7, 2, 0, 'hangar'); sect(6, -2, 0, 'hangar');
       } else {
         at(1.4, sayf('FUEL DEPOT! THIS PLACE IS CRAWLING WITH ARMOR!')); at(3, sp('tank')); at(6, sp('heli')); rep(9, 3, 0.7, sp('uav')); at(12, sp('apc')); at(16, crate('BOOM'));
-        at(18, sp('tank')); rep(21, 3, 0.8, sp('bike')); at(24, sp('heli')); at(28, crate('RAPID')); at(29, sp('apc')); rep(32, 3, 0.7, sp('uav'));
-        sect(2.8, 0, 0, g); sect(7, -2, 0, 'depot'); sect(7, 3, 0, 'depot'); sect(7, -3, 0, 'depot'); sect(7, 2, 0, 'depot'); sect(8, -1, 0, 'depot');
+        at(18, sp('tank')); rep(21, 3, 0.8, sp('bike')); at(24, sp('heli')); at(27, crate('RAPID'));
+        sect(2.8, 0, 0, g); sect(7, -2, 0, 'depot'); sect(7, 3, 0, 'depot'); sect(7, -3, 0, 'depot'); sect(6, 2, 0, 'depot');
       }
-      at(0, sayf('GUN TOWERS AHEAD! EYES FRONT!')); at(0.8, tf); rep(2, 4, 2.7, i => spawnTurrets(i));
-      sect(16, 0, 0, g);
-      at(1, sayf('RUNWAY IS ACROSS THE TRENCH. JUMP IT!'));
-      sect(3, 0, 0, g); sect(2, 0, 450, 'bramp'); chasm(3, 'bchasm', () => spawnGunship(6), landGunship);
-      at(1.4, sayf('ON THE RUNWAY! EVERYTHING THEY HAVE IS COMING!')); at(2.2, tb); at(3.5, sp('tank')); rep(5, 2, 1, sp('heli')); rep(8, 3, 0.7, sp('bike')); at(11, sp('apc')); at(13, crate('SPREAD'));
-      rep(14, 3, 0.7, sp('uav')); at(17, sp('humvee')); at(19, sp('tank')); at(22, crate('REPAIR'));
-      sect(3, 0, -450, 'runway'); sect(22, 0, 0, 'runway');
+      at(0, sayf('RUNWAY IS ACROSS THE TRENCH. EYES FRONT!')); at(0.8, tf); rep(1.5, 2, 0.7, sp('drone', { td:[2400, 3000] }));
+      sect(4.5, 0, 0, g); sect(2, 0, 450, 'bramp'); chasm(3, 'bchasm', () => spawnGunship(6), landGunship);
+      at(1.4, sayf('ON THE RUNWAY! EVERYTHING THEY HAVE IS COMING!')); at(2.2, tb); at(3.5, sp('tank')); rep(5, 2, 1, sp('heli')); rep(8, 4, 0.7, sp('bike')); at(11, sp('apc')); at(13, crate('SPREAD'));
+      rep(14, 3, 0.7, sp('uav')); at(16.5, sp('humvee')); at(18, sp('tank')); at(20, sp('heli')); at(22.5, crate('REPAIR'));
+      sect(3, 0, -450, 'runway'); sect(23, 0, 0, 'runway');
       at(0.5, quake('THE GROUND IS SHAKING...', 3)); at(3.2, bossf(COLOSSUS));
       sect(3, 0, 0, 'runway'); loopSect(() => { sect(16, 0, 0, 'runway'); });
     } }
@@ -865,10 +888,11 @@ let armor = MAX_ARMOR, invul = 0, hurtFlash = 0, whiteFlash = 0, shake = 0, cont
 let ents = [], rockets = [], parts = [], booms = [], floats = [], lights = [];
 let route = null, jump = null, gunship = null, boss = null, bossDead = 0, quakeT = 0, calm = 0;
 let dlg = null, dlgQ = [], banner = null, clearInfo = null, contT = 0;
-let bgX = 0, hop = 0, hopV = 0, camY = 0, darkA = 0, ovCur = null, lowSaid = false, DIFF = 1;
+let bgX = 0, hop = 0, hopV = 0, camY = 0, darkA = 0, ovCur = null, lowSaid = false, DIFF = 1, speedMul = 1;
+const HARD = 1.15;          // overall difficulty: raise for faster lock-ons and rockets, lower to relax
 let hiScore = 0; try { hiScore = +localStorage.getItem('roughride.hi') || 0; } catch (e) {}
 
-function loadStage(i){ stageI = i; ST = STAGES[i]; TH = THEMES[ST.theme]; VEH = vehFor(ST.theme); DIFF = 1 + i * 0.07; buildStage(null); }
+function loadStage(i){ stageI = i; ST = STAGES[i]; TH = THEMES[ST.theme]; VEH = vehFor(ST.theme); DIFF = HARD + i * 0.09; buildStage(null); }
 function goTitle(){ state = 'title'; stateT = 0; setMusic(null); loadStage(0); ents = []; rockets = []; boss = null; gunship = null; jump = null; facing = 'back'; S = 0; darkA = 0; }
 function startGame(i){
   for (const p of PL) Object.assign(p, { score:0, best:0, shots:0, hits:0, kills:0 });
@@ -877,7 +901,7 @@ function startGame(i){
 function startStage(i){
   loadStage(i); route = null;
   state = 'play'; stateT = 0; stageT = 0; S = 0; speed = V0; timeScale = 1; tsTarget = 1; facing = ST.startFront ? 'front' : 'back'; turn = null;
-  armor = MAX_ARMOR; invul = 0; continues = 0; hurtFlash = 0; whiteFlash = 0; shake = 0; lowSaid = false; calm = 0; hop = 0; hopV = 0; hopI = 0; darkA = 0;
+  armor = MAX_ARMOR; invul = 0; continues = 0; hurtFlash = 0; whiteFlash = 0; shake = 0; lowSaid = false; calm = 0; hop = 0; hopV = 0; hopI = 0; darkA = 0; speedMul = 1;
   ents = []; rockets = []; parts = []; booms = []; floats = []; jump = null; gunship = null; boss = null; bossDead = 0; quakeT = 0;
   dlg = null; dlgQ = []; banner = null; evI = 0;
   for (const p of PL) Object.assign(p, { ammo:CLIP, reload:0, auto:false, combo:0, spread:0, rapid:0, fireCd:0, stageStart:p.score, s0:{ shots:p.shots, hits:p.hits, kills:p.kills }, best:0 });
@@ -911,6 +935,12 @@ const TYPES = {
   tank:   { hp:16, upx:16, pts:1200, shoot:'shell', td:[2400, 2900], x:300, wa:200, wf:0.2, life:24, dust:3, muzzle:[0.5, 0.36] },
   heli:   { hp:7, upx:15, pts:900, shoot:'rocket', fly:true, td:[2300, 3000], x:800, h:[700, 1200], wa:[300, 600], wf:0.35, life:18, rotors:[[40, 3, 78]], muzzle:[0.2, 0.65] },
   boat:   { hp:4, upx:16, pts:300, shoot:'rocket', td:[1900, 2600], x:[-2500, -2000], wa:180, wf:0.4, life:16, muzzle:[0.5, 0.1] },
+  tanker: { hp:9, upx:16, pts:1500, td:[2300, 2800], x:450, wa:150, wf:0.2, life:22, dust:2, tanker:true },
+  guntruck:{ hp:4, upx:15, pts:400, ring:2.0, td:[1700, 2300], x:650, wa:[150, 350], life:16, dust:2 },
+  mine:   { hp:1, img:'mine', upx:40, pts:100, still:true, hazard:['MINE!', 1, 650] },
+  log:    { hp:3, img:'log', upx:38, pts:200, still:true, hazard:['CRASH!', 1, 900] },
+  ice:    { hp:2, img:'iceblock', upx:36, pts:150, still:true, hazard:['CRASH!', 1, 700] },
+  slight: { hp:2, img:'sltower', upx:60, pts:400, still:true, alarm:true },
   eyebot: { hp:1, upx:20, pts:120, ring:1.7, td:[1500, 2400], sideX:[1250, 1500], d0:[2600, 3600], h:[200, 1100], wa:0, life:7.5 },
   crate:  { hp:1, upx:24, pts:100 },
   barrel: { hp:1, img:'barrel', upx:26, pts:50, still:true },
@@ -951,7 +981,7 @@ function spawnTurrets(i){
 }
 function spawnBoss(def){
   boss = spawnE('boss', { def, img: VEH[def.art], upx: def.upx, d: 15000, td: def.td, px: 0, h: def.h || 0, life: 1e9, wa: 260, wf: 0.18, phase: 0, atk: 3.5, ringT: 7, lunge: 0, lungeT: 9,
-    cores: def.cores.map(c => ({ x:c.x, y:c.y, ph:c.ph, hp:c.hp, max:c.hp, flash:0 })), ringHits: 0, dying: 0, pts: 20000 + stageI * 10000 });
+    cores: def.cores.map(c => ({ x:c.x, y:c.y, ph:c.ph, hp:c.hp, max:c.hp, flash:0 })), ringHits: 0, dying: 0, foT: 11, fo: 0, shT: 3, vuln: false, minT: 7, pts: 20000 + stageI * 10000 });
   boss.maxPh = Math.max(...def.cores.map(c => c.ph));
   sfx.roar(); shake = 12; showBanner('WARNING!', def.name, 3);
 }
@@ -982,6 +1012,9 @@ function kill(e, p){
   if (e.type === 'crate'){ grab(p, e.kind, cx, cy); return; }
   if (e.type === 'sign'){ choose(e.label); return; }
   explode(cx, cy, sz, e.hp0 >= 4);
+  if (TYPES[e.type].tanker){ whiteFlash = 0.3; shake = 12; booms.push({ x:cx, y:cy, r:sz * 2.2, t:0, life:0.9 }); floatText('TANKER DOWN!', cx, cy - 20, '#ffd23f', 1, 1.2);
+    for (const o of ents) if (!o.dead && o !== e && o.side === facing && o.type !== 'crate' && o.type !== 'boss' && Math.abs(o.d - e.d) < 1500 && Math.abs(o.x - e.x) < 1400){ o.chain = 0.2; o.chainP = p; } }
+  if (e.type === 'slight') floatText('LIGHTS OUT!', cx, cy - 10, '#86d45a', 1, 0.9);
   if (e.type === 'barrel'){ for (const o of ents) if (o.type === 'barrel' && !o.dead && Math.abs(o.x - e.x) < 450 && Math.abs(o.d - e.d) < 400){ o.chain = 0.15; o.chainP = p; } checkBarricade(); }
 }
 const blocking = o => o.type === 'barrel' && Math.abs(o.x) < 900 && !o.dead;
@@ -990,6 +1023,10 @@ function checkBarricade(){
   let any = false;
   for (const o of ents) if ((o.type === 'sandbag' || o.type === 'turret' || o.type === 'barrel') && Math.abs(o.x) < 1300 && !o.dead){ any = true; if (o.type === 'turret' && o.rect) explode((o.rect.x0 + o.rect.x1) / 2, (o.rect.y0 + o.rect.y1) / 2, 8); o.dead = true; }
   floatText('ROAD CLEAR!', LW/2, 60, '#86d45a', 2, 1.6); say('ROAD CLEAR! NICE WORK!', 1.6);
+}
+function alarm(){
+  floatText('ALARM!', LW/2, 56, '#ff4a3c', 3, 1.4); hurtFlash = Math.max(hurtFlash, 0.2); say('THEY SPOTTED US! REINFORCEMENTS!', 1.3); tone(0.5, 600, 900, 0.2, 'sawtooth'); tone(0.5, 900, 600, 0.2, 'sawtooth', 0.5);
+  spawnE('heli', { td:[2300, 2700] }); spawnE('bike'); spawnE('bike');
 }
 function grab(p, kind, x, y){
   sfx.pick(); floatText(PICKUPS[kind].name, x, y - 14, '#fff3a0', 1, 1.4);
@@ -1044,7 +1081,7 @@ function fire(p){
     if (hits >= maxHits) break;
     if (e.type === 'boss'){
       let coreHit = false;
-      for (const c of e.cores){ if (c.hp <= 0 || c.ph !== e.phase) continue; const cx = e.rect.x0 + c.x * e.rect.k, cy = e.rect.y0 + c.y * e.rect.k; if (Math.hypot(lx - cx, ly - cy) < Math.max(3, 5.5 * e.rect.k) + rad){ coreHit = true; hitBossCore(e, c, p, cx, cy); hits++; break; } }
+      for (const c of e.cores){ if (c.hp <= 0 || c.ph !== e.phase || (e.def.shutter && !e.vuln)) continue; const cx = e.rect.x0 + c.x * e.rect.k, cy = e.rect.y0 + c.y * e.rect.k; if (Math.hypot(lx - cx, ly - cy) < Math.max(3, 5.5 * e.rect.k) + rad){ coreHit = true; hitBossCore(e, c, p, cx, cy); hits++; break; } }
       if (!coreHit && lx > e.rect.x0 && lx < e.rect.x1 && ly > e.rect.y0 && ly < e.rect.y1){ neutral = true; sfx.ping(); sparks(lx, ly, 3, ['#a8b0c4', '#ffffff'], 30, 0.2); break; }
       continue;
     }
@@ -1093,6 +1130,7 @@ function update(rdt){
   if (state === 'continue'){ contT -= rdt; if (contT <= 0){ state = 'gameover'; stateT = 0; saveHi(); } updateFx(rdt); return; }
   if (state === 'gameover' || state === 'clear' || state === 'ending'){ updateFx(rdt); if (state === 'clear') S += speed * rdt; return; }
   const dt = rdt * timeScale;
+  if (!bossDead) speed = lerp(speed, V0 * speedMul, Math.min(1, rdt * 5));
   stageT += dt; S += speed * dt;
   while (evI < EV.length && EV[evI][0] <= stageT) EV[evI++][1]();
   if (!dlg && dlgQ.length) dlg = dlgQ.shift();
@@ -1100,14 +1138,14 @@ function update(rdt){
   calm = dlg ? 0.45 : Math.max(0, calm - rdt);            // enemies hold their fire while Sarge is talking
   if (banner){ banner.t += rdt; if (banner.t > banner.dur) banner = null; }
   invul = Math.max(0, invul - rdt); hurtFlash = Math.max(0, hurtFlash - rdt); whiteFlash = Math.max(0, whiteFlash - rdt);
-  if (quakeT > 0){ quakeT -= rdt; shake = Math.max(shake, 3); }
+  if (quakeT > 0){ quakeT -= rdt; shake = Math.max(shake, 2.2); }
   for (const p of PL){
     if (!p.src) continue;
     p.fireCd = Math.max(0, p.fireCd - rdt); p.spread = Math.max(0, p.spread - dt); p.rapid = Math.max(0, p.rapid - dt);
     if (p.reload > 0){ p.reload -= rdt; if (p.reload <= 0){ p.ammo = CLIP; p.auto = false; } }
     if (p.rapid > 0 && p.held) fire(p);
   }
-  if (turn){ turn.t += rdt; if (!turn.switched && turn.t > 0.28){ turn.switched = true; facing = turn.to; for (const e of ents) if (e.side !== facing && e.type !== 'boss') e.dead = true; rockets = []; } if (turn.t > 0.56) turn = null; }
+  if (turn){ turn.t += rdt; if (!turn.switched && turn.t > 0.28){ turn.switched = true; facing = turn.to; for (const e of ents) if (e.side !== facing && e.type !== 'boss') e.dead = true; rockets = []; if (boss && boss.flip){ boss.side = facing; boss.flip = false; } } if (turn.t > 0.56) turn = null; }
   dir = facing === 'front' ? 1 : -1;
   if (!route && stageT > FORKT) choose(ST.routes[0]);
   const ch = CH.find(c => !c.done);
@@ -1150,6 +1188,8 @@ function updEnt(e, dt){
   if (T.still){
     e.d -= speed * dt;
     if (blocking(e) && e.d < 950){ for (const o of ents) if ((o.type === 'barrel' || o.type === 'turret' || o.type === 'sandbag') && Math.abs(o.d - e.d) < 1500) o.dead = true; explode(LW/2, 130, 30, true); hurt(2, 'CRASH!'); say('OOF! THAT ONE HURT!', 1.6); return; }
+    if (T.hazard && Math.abs(e.x) < T.hazard[2] && e.d < 950){ e.dead = true; explode(LW/2, 132, 16, true); hurt(T.hazard[1], T.hazard[0]); return; }
+    if (T.alarm && e.d < 900){ e.dead = true; alarm(); return; }
     if (e.type === 'sign' && e.d < 1300) e.dead = true;
     if (e.d < 700) e.dead = true;
   } else if (e.type === 'boss'){ updBoss(e, dt); return; }
@@ -1187,6 +1227,13 @@ function updBoss(e, dt){
     return;
   }
   for (const c of e.cores) c.flash = Math.max(0, c.flash - dt);
+  if (def.shutter){ e.shT -= dt; if (e.shT <= 0){ e.vuln = !e.vuln; e.shT = e.vuln ? 4 : 3; if (e.vuln){ floatText('CORES EXPOSED!', LW/2, 72, '#ffd23f', 1, 1.2); sfx.pick(); } } }
+  if (def.minions && calm <= 0){ e.minT -= dt; if (e.minT <= 0){ e.minT = rand(8, 11); if (ents.filter(o => o.minion && !o.dead).length < 3) for (let i = 0; i < 2; i++) spawnE(def.minions, { minion:true }); } }
+  if (def.flyover){                 // the gunship overtakes the jeep, so the fight swings between facing back and facing front
+    if (e.fo === 1){ e.d += (150 - e.d) * Math.min(1, dt * 2.4); e.hh = e.h + (1 - Math.min(1, e.d / e.td)) * 1100; e.ring = null; if (e.d < 650 && !turn){ e.fo = 2; e.flip = true; turn_(facing === 'back' ? 'front' : 'back'); } return; }
+    if (e.fo === 2 && e.d > e.td * 0.85) e.fo = 0;
+    if (!e.fo){ e.foT -= dt; if (e.foT <= 0 && !e.ring && calm <= 0 && !turn && e.d < e.td * 1.2){ e.fo = 1; e.foT = rand(12, 16); sfx.whoosh(); say(facing === 'back' ? "IT'S COMING OVER US! EYES FRONT!" : 'HERE IT COMES AGAIN! EYES BACK!', 1.3); } }
+  }
   e.lungeT -= dt;
   if (e.lungeT <= 0 && !e.lungeA && calm <= 0){ e.lungeA = 2.4; e.lungeT = rand(8, 11); sfx.roar(); }
   if (e.lungeA){ e.lungeA -= dt; e.lunge = Math.sin(clamp(1 - e.lungeA / 2.4, 0, 1) * Math.PI) * 0.35; if (e.lungeA <= 0){ e.lungeA = 0; e.lunge = 0; } }
@@ -1201,7 +1248,7 @@ function updBoss(e, dt){
   e.atk -= dt;
   if (e.atk <= 0 && open.length){
     const volley = (n, from, o) => { for (let i = 0; i < n; i++) setTimeout(() => { if (e.rect && !e.dead && !e.dying && state === 'play'){ const q = from(); fireRocket(q[0] + (i - (n - 1) / 2) * 8, q[1], o); } }, i * 260); };
-    if (def.rocks && Math.random() < 0.45) volley(3, () => [rand(e.rect.x0, e.rect.x1), e.rect.y0], { kind:'rock', dur: 1.7 });
+    if (def.rocks && Math.random() < 0.3) volley(2, () => [rand(e.rect.x0, e.rect.x1), e.rect.y0], { kind:'rock', dur: 1.8 });
     else if (last) volley(3, () => eye);
     else { const c = open[(e.t * 10 | 0) % open.length]; volley(open.length === 1 ? 2 : 1, () => at2(c)); }
     e.atk = (last ? rand(3, 3.8) : rand(2.2, 2.9)) / DIFF;
@@ -1358,10 +1405,12 @@ function drawEnt(e){
       const cx = r.x0 + c.x * r.k, cy = r.y0 + c.y * r.k, rr2 = Math.max(2, 4.5 * r.k);
       if (c.hp <= 0){ if (Math.random() < 0.3) parts.push({ x: cx + rand(-2, 2), y: cy, vx: rand(-4, 4), vy: -rand(10, 25), g: -5, t:0, life: 0.7, col: pick(['#3a3a4e', '#6b7088']), sz: 2 }); continue; }
       if (c.ph !== e.phase){ pcirc(cx, cy, rr2 * 0.6, '#3a3a4e'); continue; }
+      if (e.def.shutter && !e.vuln){ pcirc(cx, cy, rr2 + 1, '#14101e'); pcirc(cx, cy, rr2, '#5a6a80'); g.fillStyle = '#14101e'; g.fillRect(Math.round(cx - rr2), Math.round(cy), Math.round(rr2 * 2) + 1, 1); g.fillRect(Math.round(cx), Math.round(cy - rr2), 1, Math.round(rr2 * 2) + 1); continue; }
       const pulse = 0.6 + 0.4 * Math.sin(clock * 8);
       pcirc(cx, cy, rr2 + 1, '#14101e'); pcirc(cx, cy, rr2, c.flash > 0 ? '#ffffff' : pulse > 0.8 ? '#ff7a5c' : '#ff4a3c'); pcirc(cx - rr2 * 0.3, cy - rr2 * 0.3, Math.max(1, rr2 * 0.35), '#fff3a0');
     }
   }
+  if (e.type === 'slight'){ const lx2 = cxm, ly2 = r.y0 + 8 * r.k, sw = Math.sin(clock * 2.2 + e.ph) * 30 * r.k, gy = r.y1 + 2, bx2 = lx2 + (e.x < 0 ? 1 : -1) * 46 * r.k + sw, bw = 16 * r.k; g.fillStyle = 'rgba(255,244,170,0.20)'; g.beginPath(); g.moveTo(lx2, ly2); g.lineTo(bx2 - bw, gy); g.lineTo(bx2 + bw, gy); g.fill(); lampSpots.push({ x: lx2, y: ly2, r: 8 }); }
   if (e.type === 'crate' && r.y1 - r.y0 > 10) ptxt(e.kind, cxm, r.y0 - 9, e.kind === 'BOOM' ? '#ff4a3c' : '#fff3a0', 1, 'center');
   if (e.type === 'eyebot' || e.lit) lampSpots.push({ x: cxm, y: (r.y0 + r.y1) / 2, r: e.lit ? Math.max(10, (r.x1 - r.x0) * 0.6) : 6, red:true });
   if (e.type === 'sign' && r.y1 - r.y0 > 6 && Math.sin(clock * 10) > 0){ g.strokeStyle = '#ffffff'; g.lineWidth = 1; g.strokeRect(Math.round(r.x0) - 1.5, Math.round(r.y0) - 1.5, Math.round(r.x1 - r.x0) + 3, Math.round((r.y1 - r.y0) * 0.5) + 3); }
