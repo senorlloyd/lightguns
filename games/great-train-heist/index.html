@@ -1217,6 +1217,7 @@ function update(rdt){
   if (hurtFlash > 0) hurtFlash -= rdt * 2; if (whiteFlash > 0) whiteFlash -= rdt * 2;
   for (const p of PL){
     if (!p.src) continue;
+    if (p.src.type === 'mouse'){ p.x = mouse.x; p.y = mouse.y; p.held = mouse.down; }
     if (p.fireCd > 0) p.fireCd -= rdt;
     if (state === 'play'){
       if (p.reload > 0){ p.reload -= rdt; if (p.reload <= 0){ p.reload = 0; p.ammo = CLIP; p.auto = false; if (!p.stillReload) {} } }
