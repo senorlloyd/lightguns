@@ -73,6 +73,7 @@ const GAMES = [
   { title:'Puck Shot',          file:'games/puck-shot/index.html',          players:[1,2], genre:'AIR HOCKEY',      blurb:'No paddles. Your shots shove the puck.',                    colors:['#2a8bff','#ff8a1e'], demo:'puckshot', banner:null, video:null },
   { title:'Bubble Battle',      file:'games/bubble-battle/index.html',      players:[2,2], genre:'PUZZLE VERSUS',   blurb:'Pop three or more and bury your rival in rows.',            colors:['#b45cff','#3bf0ff'], demo:'bubble',   banner:null, video:null },
   { title:'Rough Ride',         file:'games/rough-ride/index.html',         players:[1,2], genre:'JEEP RAIL SHOOTER', blurb:'4 stages in the back of a jeep. Robot army on your tail.', colors:['#ffd23f','#3c9a44'], demo:'roughride', banner:null, video:null },
+  { title:'Great Train Heist',  file:'games/great-train-heist/index.html',  players:[1,2], genre:'TRAIN ROBBERY',   blurb:'Robot bandits in every window. Don’t hit the passengers.',  colors:['#ffd23f','#c8323a'], demo:'trainheist', banner:null, video:null },
   { title:'Bank Job',           file:'games/bank-job/index.html',           players:[1,1], genre:'RICOCHET PUZZLE', blurb:'One bullet. Every lock. Bank it off the walls.',            colors:['#ffc93b','#3bf0ff'], demo:'bankjob',  banner:null, video:null },
   { title:'Goose Hunt',         file:'games/goose-hunt/index.html',         players:[1,1], genre:'HUNTING',         blurb:'Honk if you missed. The dog is watching.',                  colors:['#5fb7ff','#7ad04a'], demo:'goose',    banner:null, video:null },
   { title:'Glass Factory',      file:'games/glass-factory/index.html',      players:[1,1], genre:'QUALITY CONTROL', blurb:'Smash the rejects. Let the good glass through.',            colors:['#3bf0d0','#ff4040'], demo:'glass',    banner:null, video:null },
@@ -1080,6 +1081,59 @@ DEMOS.roughride = {
     c.imageSmoothingEnabled = false; c.drawImage(s.c, 0, 0, VW, VH); c.imageSmoothingEnabled = true;
     drawParts(c, s.p, true);
     hud(c, 'ROUGH RIDE', 40, 30, '#ffd23f', 54, 'left', FONT); hud(c, 'STAGE 1: JUNGLE RUN', 44, 92, '#ffffff', 22, 'left');
+    drawCross(c, s.g.x, s.g.y, s.g.col, s.g.flash, 1, s.g.label);
+  }
+};
+
+/* ---------- Great Train Heist ---------- */
+DEMOS.trainheist = {
+  init(s) {
+    s.c = document.createElement('canvas'); s.c.width = 320; s.c.height = 180; s.x = s.c.getContext('2d'); s.x.imageSmoothingEnabled = false;
+    s.g = mkGun('#4fc3ff', 'P1'); s.z = 0; s.wins = []; for (let i = 0; i < 6; i++) s.wins.push({ i, kind: null, up: 0, t: 0, st: 'empty', cd: rnd(0.2, 1.6) });
+  },
+  update(s, dt) {
+    s.z += dt * 70;
+    for (const w of s.wins) {
+      w.t += dt;
+      if (w.st === 'empty') { w.cd -= dt; if (w.cd <= 0) { w.st = 'rise'; w.kind = Math.random() < 0.62 ? 'bandit' : 'pass'; w.t = 0; } }
+      else if (w.st === 'rise') { w.up = Math.min(1, w.up + dt * 6); if (w.up >= 1) { w.st = 'stay'; w.t = 0; } }
+      else if (w.st === 'stay') { if (w.t > (w.kind === 'pass' ? 1.4 : 2.2)) w.st = 'fall'; }
+      else if (w.st === 'fall' || w.st === 'hit') { w.up = Math.max(0, w.up - dt * 5); if (w.up <= 0) { w.st = 'empty'; w.cd = rnd(0.4, 1.8); w.dead = false; } }
+      w.sp = { x: (42 + w.i * 42 + 9) * 4, y: (78 - 8) * 4, r: 34, w };
+    }
+    gunStep(s.g, dt, () => { const c = s.wins.filter(w => w.st === 'stay' && w.kind === 'bandit' && !w.dead); return c.length ? pick(c).sp : null; }, (gg, t) => {
+      const w = t.w; if (w.st !== 'stay') return false; w.st = 'hit'; w.dead = true; s.score += 100;
+      addParts(s.p, t.x, t.y, 18, { col: ['#ffd23f', '#a8b0c4', '#fff3a0', '#6b7088'], shape: 'sq', size: 8, min: 100, max: 420, g: 500, life: 0.7 }); popText(s, t.x, t.y - 50, '100', '#fff', 30);
+    });
+    updParts(s.p, dt);
+  },
+  draw(c, s) {
+    const x = s.x, R = (X, Y, w, h, col) => { x.fillStyle = col; x.fillRect(X, Y, w, h); };
+    ['#4a7ad8', '#5a8ae0', '#74a2e8', '#94bcee', '#bcd6f2', '#e2ecf0'].forEach((col, i) => R(0, i * 16, 320, 16, col));
+    x.fillStyle = '#fff3a0'; x.beginPath(); x.arc(256, 30, 12, 0, TAU); x.fill();
+    for (let i = 0; i < 6; i++) { const bx = ((i * 70 - s.z * 0.05) % 420 + 420) % 420 - 50, h = 20 + (i * 13) % 22; R(bx, 96 - h, 44, h, '#c86a3a'); R(bx, 96 - h, 44, 2, '#e08a4a'); }
+    R(0, 96, 320, 84, '#e0b878');
+    for (let k = 0; k < 5; k++) { const px = Math.round(((k * 90 - s.z * 0.62) % 450 + 450) % 450 - 40); R(px, 24, 2, 80, '#5a3a22'); R(px - 7, 28, 16, 2, '#5a3a22'); }
+    // coach
+    R(18, 46, 284, 4, '#3a2a2a'); R(20, 50, 280, 64, '#8a2a2a'); R(20, 50, 280, 1, '#b0463c'); R(20, 56, 280, 1, '#d8a040'); R(20, 92, 280, 1, '#d8a040'); R(20, 108, 280, 4, '#5a1a1e');
+    for (const w of s.wins) {
+      const wx = 42 + w.i * 42, wy = 62;
+      R(wx - 2, wy - 2, 22, 24, '#d8a040'); R(wx, wy, 18, 20, '#4a3034'); R(wx, wy, 3, 20, '#c8a070'); R(wx + 15, wy, 3, 20, '#c8a070');
+      if (w.up > 0) {
+        x.save(); x.beginPath(); x.rect(wx, wy, 18, 20); x.clip();
+        const fy = wy + Math.round((1 - w.up) * 22);
+        if (w.kind === 'bandit') { R(wx + 1, fy + 15, 16, 6, '#6b4a2e'); R(wx + 4, fy + 5, 10, 9, '#8a90a4'); R(wx + 4, fy + 7, 10, 3, '#14101e'); R(wx + 5, fy + 8, 3, 1, w.dead ? '#fff3a0' : '#ff4a3c'); R(wx + 10, fy + 8, 3, 1, w.dead ? '#fff3a0' : '#ff4a3c'); R(wx + 4, fy + 10, 10, 3, '#c8323a'); R(wx + 4, fy + 1, 10, 3, '#6a4428'); R(wx, fy + 4, 18, 2, '#6a4428'); }
+        else { R(wx + 3, fy + 15, 12, 6, '#7a3aa0'); R(wx + 5, fy + 5, 8, 9, '#f0c8a0'); R(wx + 6, fy + 8, 2, 2, '#14101e'); R(wx + 10, fy + 8, 2, 2, '#14101e'); R(wx + 8, fy + 11, 2, 2, '#7a2a2a'); R(wx + 4, fy + 2, 10, 4, '#c040e0'); R(wx + 1, fy + 2, 2, 12, '#7a3aa0'); R(wx + 15, fy + 2, 2, 12, '#7a3aa0'); R(wx, fy, 3, 3, '#f0c8a0'); R(wx + 15, fy, 3, 3, '#f0c8a0'); }
+        x.restore();
+      }
+    }
+    x.fillStyle = '#d8a040'; x.font = '8px monospace'; x.fillText('GOLD LINE', 140, 102);
+    R(30, 112, 260, 4, '#24222f');
+    for (const wx of [50, 74, 246, 270]) { x.fillStyle = '#14101e'; x.beginPath(); x.arc(wx, 120, 6, 0, TAU); x.fill(); x.fillStyle = '#3a3a4e'; x.beginPath(); x.arc(wx, 120, 5, 0, TAU); x.fill(); const a = -s.z / 6; R(Math.round(wx + Math.cos(a) * 3), Math.round(120 + Math.sin(a) * 3), 1, 1, '#a8b0c4'); }
+    R(0, 126, 320, 2, '#a8b0c4'); R(0, 150, 320, 30, '#b07a42'); for (let k = 0; k < 22; k++) R(Math.round(((k * 16 - s.z * 1.7) % 352 + 352) % 352 - 16), 158, 9, 5, '#5a3a22'); R(0, 158, 320, 2, '#a8b0c4');
+    c.imageSmoothingEnabled = false; c.drawImage(s.c, 0, 0, VW, VH); c.imageSmoothingEnabled = true;
+    drawParts(c, s.p, true);
+    hud(c, 'GREAT TRAIN HEIST', 40, 30, '#ffd23f', 50, 'left', FONT); hud(c, "DON'T SHOOT THE PASSENGERS!", 44, 90, '#ffffff', 22, 'left');
     drawCross(c, s.g.x, s.g.y, s.g.col, s.g.flash, 1, s.g.label);
   }
 };
