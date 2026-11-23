@@ -337,14 +337,14 @@ const COL = { muzzle: C(0xffc860), spark: C(0xffd890), plasma: C(0x5fb6ff), plas
 function burst(p, n, speed, life, s0, s1, color, a = 1, drag = 2, grav = 0, sys = fx) {
   for (let i = 0; i < n; i++) { _v1.set(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize().multiplyScalar(speed * rand(0.3, 1)); sys.spawn(p, _v1, life * rand(0.6, 1.2), s0, s1, color, a, drag, grav); }
 }
-function explosion(at, size = 1) {
+function explosion(at, size = 1, quiet) {
   const p = at.clone();
   burst(p, 30 * size, 14 * size, 0.55, 3 * size, 7 * size, COL.fire, 1, 3);
   burst(p, 20 * size, 9 * size, 0.3, 5 * size, 2 * size, COL.white, 1, 4);
   burst(p, 40, 22 * size, 0.9, 0.4, 0.1, COL.spark, 1, 1.5, 14);
   burst(p, 18 * size, 5 * size, 2.2, 3 * size, 9 * size, COL.smoke, 0.55, 1.2, -2.5, smoke);
   addDebris(p, 10 * size, size);
-  shake = Math.max(shake, 0.35 * size); sfx.boom(size);
+  shake = Math.max(shake, 0.35 * size); if (!quiet) sfx.boom(size);
 }
 const confettiCols = [0xff4d6d, 0xffd23f, 0x3bceac, 0x6a4cff, 0xff8c42, 0x4cc9f0].map(C);
 function confetti(at) {
@@ -403,14 +403,14 @@ function updateDebris(dt) {
 const sfx = (() => {
   let ac = null, master, noise, eng = null;
   const buf = {};
-  let gunMode = 'idle', fireLoop = null, spinSrc = null, boomCount = 0;
+  let gunMode = 'idle', fireLoop = null, spinSrc = null, boomCount = 0, hum = null, voices = 0, tauntT = 0, screamT = 0;
   function init() {
     if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
     ac = new (window.AudioContext || window.webkitAudioContext)();
     master = ac.createGain(); master.gain.value = 0.6; master.connect(ac.destination);
     noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     for (const [k, b64] of Object.entries(window.HOG_AUDIO || {})) {
-      ac.decodeAudioData(b64ToBuf(b64)).then(b => { buf[k] = b; if (k === 'hog_loop') eng = loop('hog_loop', 0); });
+      ac.decodeAudioData(b64ToBuf(b64)).then(b => { buf[k] = b; if (k === 'hog_loop') eng = loop('hog_loop', 0); if (k === 'ghost_hum') hum = loop('ghost_hum', 0); });
     }
   }
   function play(name, vol = 1, rate = 1) {
@@ -464,6 +464,20 @@ const sfx = (() => {
     pop() { tone(0.12, 500, 1400, 0.25, 'square'); nz(0.15, 3000, 800, 0.2); },
     ui() { tone(0.1, 660, 990, 0.18, 'square'); },
     plasmaBoom() { if (buf.boom_l2) play(Math.random() < 0.5 ? 'boom_l2' : 'boom_m1', 0.85, rand(1.05, 1.2)); else nz(1.2, 2200, 70, 0.8); tone(0.7, 220, 40, 0.5, 'sine'); tone(0.45, 1800, 200, 0.22, 'sawtooth'); },
+    // distance -> volume (full inside 12 m, fading out by ~90 m)
+    near(d) { return clamp(1.15 - d / 80, 0.15, 1); },
+    voice(name, vol) { if (!buf[name] || voices >= 3) return; const n = play(name, vol, rand(0.94, 1.08)); if (n) { voices++; n.s.onended = () => voices--; } },
+    gruntDie(d) { if (Math.random() < 0.75) this.voice('gdeath' + (1 + Math.floor(Math.random() * 7)), 0.75 * this.near(d)); },
+    gruntScream(d) { if (!ac || ac.currentTime < screamT) return; screamT = ac.currentTime + 6; this.voice('gscream', 0.8 * this.near(d)); },
+    // taunts: rare on purpose (30 s minimum gap, never in the first 12 s of a run, and only by chance)
+    taunt(chance, runTime) { if (!ac || runTime < 12 || ac.currentTime < tauntT || Math.random() > chance) return; tauntT = ac.currentTime + 30; this.voice('taunt' + (1 + Math.floor(Math.random() * 5)), 0.9); },
+    resetTaunts() { tauntT = 0; },
+    ghostHum(level) { if (hum) { hum.g.gain.setTargetAtTime(level * 0.55, ac.currentTime, 0.15); hum.s.playbackRate.setTargetAtTime(0.92 + level * 0.18, ac.currentTime, 0.2); } },
+    ghostFire(d) { if (buf.ghost_fire1) play(Math.random() < 0.5 ? 'ghost_fire1' : 'ghost_fire2', 0.7 * this.near(d), rand(0.95, 1.06)); else this.plasma(); },
+    ghostBoost(d) { if (buf.ghost_boost) play('ghost_boost', 0.85 * this.near(d)); },
+    ghostDie(d) { if (buf.ghost_die) play('ghost_die', 0.95 * this.near(d), rand(0.95, 1.05)); else this.boom(0.6); },
+    eliteHurt() { if (buf.elite_hurt) play('elite_hurt', 0.9, rand(0.95, 1.05)); },
+    eliteDie() { if (buf.elite_die) play('elite_die', 1); },
     swordCharge() { tone(0.55, 180, 900, 0.16, 'sawtooth'); nz(0.55, 400, 3000, 0.12, 'bandpass', 4); },
     swordWhoosh() { nz(0.28, 700, 3500, 0.45, 'bandpass', 2); tone(0.25, 500, 1400, 0.1, 'sine'); },
     swordHit() { nz(0.35, 3000, 300, 0.6); tone(0.3, 160, 50, 0.5, 'square'); },
@@ -804,13 +818,13 @@ class Enemy {
     }
     this._flashOn = f > 0;
   }
-  aimAtPlayer(spread, speed, color, dmg, size = 1.1, from) {
+  aimAtPlayer(spread, speed, color, dmg, size = 1.1, from, quiet) {
     const src = from || _v3.copy(this.pos).add(V(0, 1, 0));
     const target = camera.position.clone().add(V(rand(-1, 1), rand(-0.6, 0.8), rand(-1, 1)).multiplyScalar(spread));
     target.addScaledVector(vehicleFwd, G.speed * 0.35); // lead a little
     const v = target.sub(src).normalize().multiplyScalar(speed);
     bolts.push({ p: src.clone(), v, color, dmg, size, life: 4, hp: 1 });
-    sfx.plasma();
+    if (!quiet) sfx.plasma();
   }
   remove() { scene.remove(this.obj); this.dead = true; }
 }
@@ -833,6 +847,7 @@ function grunt(p, opts = {}) {
       if (this.deadT > 2.2) this.remove(); return;
     }
     this.t += dt; const toP = _v1.copy(vehicle.position).sub(this.pos); const d = toP.length();
+    if (!this.seen && d < 60) { this.seen = true; sfx.taunt(0.12, G.time); }
     if (this.flee) { this.pos.addScaledVector(_v2.copy(toP).setY(0).normalize(), -6.5 * dt); this.obj.lookAt(_v2.copy(this.pos).sub(toP.setY(0))); }
     else if (!this.perch) {
       const side = trackSide(G.s);
@@ -862,9 +877,10 @@ function grunt(p, opts = {}) {
   e.die = function (at, idx) {
     this.vel.copy(this.pos).sub(vehicle.position).setY(0).normalize().multiplyScalar(rand(3, 7)); this.vel.y = rand(6, 10);
     this.spinX = rand(-8, 8); this.spinZ = rand(-8, 8);
+    sfx.gruntDie(this.pos.distanceTo(vehicle.position));
     if (G.party) { confetti(_v1.copy(this.pos).add(V(0, 1.2, 0))); sfx.pop(); }
     else { burst(_v1.copy(this.pos).add(V(0, 1, 0)), 14, 5, 0.6, 1.2, 2.5, COL.blue, 0.8, 2); sfx.hitEnemy(); }
-    for (const o of enemies) if (o.kind === 'grunt' && o.alive && o !== this && o.pos.distanceTo(this.pos) < 14 && Math.random() < 0.3) o.flee = true;
+    for (const o of enemies) if (o.kind === 'grunt' && o.alive && o !== this && o.pos.distanceTo(this.pos) < 14 && Math.random() < 0.3) { o.flee = true; sfx.gruntScream(o.pos.distanceTo(vehicle.position)); }
   };
   return e;
 }
@@ -898,7 +914,7 @@ function ghost(s, side) {
       if (this.deadT > 3) this.remove(); return;
     }
     this.t += dt;
-    if (!this.charge && this.t > 13) { this.charge = true; this.msgd = true; }
+    if (!this.charge && this.t > 13) { this.charge = true; this.msgd = true; sfx.ghostBoost(this.pos.distanceTo(vehicle.position)); }
     const want = this.charge ? 4 : 20 + Math.sin(this.t * 0.7 + this.phase) * 6;
     this.gap = lerp(this.gap, want, dt * (this.charge ? 0.9 : 0.5));
     const side = this.charge ? lerp(this.side, 0, 0.7) : this.side + Math.sin(this.t * 0.9 + this.phase) * 6;
@@ -920,11 +936,11 @@ function ghost(s, side) {
     if (this.charge && this.gap < 5.5) { damagePlayer(30); this.alive = false; award(this, this.pos, 0, true); explosion(this.pos, 1); this.remove(); return; }
     this.cool -= dt;
     if (this.cool <= 0 && !this.charge) {
-      this.cool = rand(1.6, 2.4); this.burstN = 4;
+      this.cool = rand(1.6, 2.4); this.burstN = 4; sfx.ghostFire(this.pos.distanceTo(vehicle.position));
     }
-    if (this.burstN > 0) { this.bt = (this.bt || 0) - dt; if (this.bt <= 0) { this.bt = 0.12; this.burstN--; this.gunSide ^= 1; const mz = V(this.gunSide ? 0.45 : -0.45, 0.45, 1.85).applyMatrix4(this.obj.matrixWorld); fx.spawn(mz, V(), 0.07, 1.6, 0.4, COL.plasmaPink, 1); this.aimAtPlayer(3.5, 48, COL.plasmaPink, 4, 0.8, mz); } }
+    if (this.burstN > 0) { this.bt = (this.bt || 0) - dt; if (this.bt <= 0) { this.bt = 0.12; this.burstN--; this.gunSide ^= 1; const mz = V(this.gunSide ? 0.45 : -0.45, 0.45, 1.85).applyMatrix4(this.obj.matrixWorld); fx.spawn(mz, V(), 0.07, 1.6, 0.4, COL.plasmaPink, 1); this.aimAtPlayer(3.5, 48, COL.plasmaPink, 4, 0.8, mz, true); } }
   };
-  e.die = function (at) { this.vel.set(rand(-4, 4), 9, 0).addScaledVector(vehicleFwd, G.speed); explosion(this.pos, this.pilotShot ? 0.4 : 0.6); this.ejectRider(); };
+  e.die = function (at) { this.vel.set(rand(-4, 4), 9, 0).addScaledVector(vehicleFwd, G.speed); explosion(this.pos, this.pilotShot ? 0.4 : 0.6, true); sfx.ghostDie(this.pos.distanceTo(vehicle.position)); this.ejectRider(); };
   return e;
 }
 
@@ -1043,7 +1059,7 @@ function elite(p) {
       if (dA > 0.8) this.pos.addScaledVector(to.normalize(), Math.min(dA, 15 * dt));
       else { this.mode = 'windup'; this.modeT = 0.65; this.stag = 0; this.combo = 0; sfx.swordCharge(); }
     } else if (this.mode === 'windup') {
-      if (this.stag >= 10) { this.mode = 'stagger'; this.modeT = 0.7; popups.push({ p: this.pos.clone().add(V(0, 3.6, 0)), t: 0, text: 'STAGGERED!', col: '#8fd0ff' }); G.score += 300; }
+      if (this.stag >= 10) { this.mode = 'stagger'; this.modeT = 0.7; sfx.eliteHurt(); popups.push({ p: this.pos.clone().add(V(0, 3.6, 0)), t: 0, text: 'STAGGERED!', col: '#8fd0ff' }); G.score += 300; }
       else if (this.modeT <= 0) { this.mode = 'slash'; this.atkT = 0; this.combo = 1; this.hitDone = false; sfx.swordWhoosh(); }
     } else if (this.mode === 'slash') {
       this.atkT += dt; const f = this.atkT / 0.3;
@@ -1100,7 +1116,7 @@ function elite(p) {
     for (const sm of this.swordMats) { sm.emissive.setRGB(1, 0.2, 0.35); sm.emissiveIntensity = glow; }
     if (this.mode === 'windup' && Math.random() < 0.6) fx.spawn(this.obj.getObjectByName('swordTip').getWorldPosition(_v1), V(rand(-1, 1), rand(0, 2), rand(-1, 1)), 0.3, 0.8, 0.1, C(0xff5a8a), 1, 1);
   };
-  e.die = function () { burst(_v1.copy(this.pos).add(V(0, 1.5, 0)), 40, 8, 1, 1, 3, COL.blue, 1, 2); sfx.boom(1.6); win(); };
+  e.die = function () { burst(_v1.copy(this.pos).add(V(0, 1.5, 0)), 40, 8, 1, 1, 3, COL.blue, 1, 2); sfx.boom(1.6); sfx.eliteDie(); win(); };
   G.boss = e;
   return e;
 }
@@ -1216,7 +1232,7 @@ function award(e, at, idx, noPoints) {
 }
 function damagePlayer(n) {
   G.sinceHit = 0; shake = Math.max(shake, 0.25);
-  if (G.shield > 0) { const s = Math.min(G.shield, n); G.shield -= s; n -= s; shieldFlash = 1; sfx.shieldHit(); }
+  if (G.shield > 0) { const s = Math.min(G.shield, n); G.shield -= s; n -= s; shieldFlash = 1; sfx.shieldHit(); if (G.shield <= 0) sfx.taunt(0.5, G.time); }
   if (n > 0) { G.health -= n; hurtFlash = 1; sfx.hurt(); }
   if (G.health <= 0 && G.state === 'play') { G.health = 0; G.won = false; G.state = 'results'; G.endT = 0; say('GUNNER DOWN', 3); music.play('lose'); }
 }
@@ -1253,7 +1269,7 @@ function fireRound() {
   if (hit.e) { G.hits++; hit.e.damage(1, hit.idx, end); burst(end, 4, 7, 0.25, 0.5, 0.1, hit.e.shieldHp > 0 ? COL.blue : COL.spark, 1, 3); }
   else if (hit.bolt) { hit.bolt.life = 0; G.score += 50; popups.push({ p: end.clone(), t: 0, text: '+50', col: '#8fd0ff' }); burst(end, 10, 6, 0.3, 1, 0.2, hit.bolt.color, 1, 3); sfx.boltZip(); }
   else if (hit.ground) { burst(end, 3, 3, 0.5, 0.8, 2.2, COL.dust, 0.7, 2, 3, smoke); if (Math.random() < 0.4) burst(end, 3, 5, 0.2, 0.3, 0.1, COL.spark, 1, 2, 10); }
-  if (G.heat >= 1) { G.heat = 1; G.overheated = true; sfx.overheat(); say('OVERHEAT', 1); }
+  if (G.heat >= 1) { G.heat = 1; G.overheated = true; sfx.overheat(); say('OVERHEAT', 1); sfx.taunt(0.4, G.time); }
 }
 
 // ---------------------------------------------------------------- input (OpenFIRE guns appear as a mouse)
@@ -1279,7 +1295,7 @@ function resetRun() {
   Object.assign(G, { s: 0, speed: 0, score: 0, kills: 0, shots: 0, hits: 0, time: 0, shield: SHIELD_MAX, health: HEALTH_MAX, sinceHit: 99, heat: 0, overheated: false, spin: 0, combo: 0, comboT: 0, boss: null, won: false, msg: '', msgT: 0 });
   events = script();
 }
-function startRun() { resetRun(); G.state = 'play'; music.play('run'); G.snap = true; G.camInit = false; sfx.ui(); }
+function startRun() { resetRun(); sfx.resetTaunts(); G.state = 'play'; music.play('run'); G.snap = true; G.camInit = false; sfx.ui(); }
 
 function placeVehicle(dt) {
   trackAt(G.s, vehicle.position); vehicle.position.y = groundH(vehicle.position.x, vehicle.position.z);
@@ -1352,6 +1368,7 @@ function updatePlay(dt) {
   if (G.shield < 1) G.shieldWasLow = true;
 
   G.comboT -= dt;
+  { let lv = 0; for (const e of enemies) if (e.kind === 'ghost' && e.alive) lv = Math.max(lv, clamp(1.2 - e.pos.distanceTo(vehicle.position) / 70, 0, 1)); sfx.ghostHum(lv); }
   for (const e of enemies) {
     if (e.dead) continue; e.update(dt);
     e.flash = Math.max(0, e.flash - dt * 6); e.setFlash();
@@ -1544,8 +1561,8 @@ function frame(now) {
 
   if (G.state === 'play') updatePlay(dt);
   else {
-    if (G.state === 'results') { G.endT += dt; G.speed = lerp(G.speed, 0, dt); G.spin = Math.max(0, G.spin - dt); sfx.gunState(false, false); sfx.engine(G.speed / RUN_SPEED * 0.8); for (const e of enemies) if (!e.dead) e.update(dt); for (let i = enemies.length - 1; i >= 0; i--) if (enemies[i].dead) enemies.splice(i, 1); }
-    else { sfx.engine(0.15); sfx.gunState(false, false); }
+    if (G.state === 'results') { G.endT += dt; G.speed = lerp(G.speed, 0, dt); G.spin = Math.max(0, G.spin - dt); sfx.gunState(false, false); sfx.engine(G.speed / RUN_SPEED * 0.8); sfx.ghostHum(0); for (const e of enemies) if (!e.dead) e.update(dt); for (let i = enemies.length - 1; i >= 0; i--) if (enemies[i].dead) enemies.splice(i, 1); }
+    else { sfx.engine(0.15); sfx.gunState(false, false); sfx.ghostHum(0); }
   }
   placeVehicle(dt);
   if (G.state === 'title' || G.state === 'credits') {
