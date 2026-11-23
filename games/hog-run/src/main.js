@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as skClone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { toCreasedNormals, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // ---------------------------------------------------------------- settings
 const Q = new URLSearchParams(location.search);
@@ -31,7 +31,7 @@ const hx = hud.getContext('2d');
 const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(1);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.1;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 const scene = new THREE.Scene();
 const HORIZON = new THREE.Color(0xa3acbd);
@@ -50,9 +50,14 @@ function resize() {
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environmentIntensity = 0.55;
-scene.add(new THREE.HemisphereLight(0xd6ecff, 0x56603e, 1.25));
-const sun = new THREE.DirectionalLight(0xfff0d8, 2.4);
+scene.add(new THREE.HemisphereLight(0xcfe4ff, 0x4f5a36, 1.15));
+const sun = new THREE.DirectionalLight(0xffe2bd, 2.75);
 sun.position.set(-210, 310, -150); // matches the sun in the sky photo
+// one dynamic light, always present (so shaders never recompile): flares at the muzzle and at explosions
+const flashLight = new THREE.PointLight(0xffb060, 0, 55, 1.7); scene.add(flashLight); let flashI = 0;
+function lightFlash(p, color, power) { if (power >= flashI * 0.6) { flashLight.position.copy(p); flashLight.color.set(color); flashI = Math.max(flashI, power); } }
+// soft vignette as a CSS overlay (no per-frame cost)
+{ const vg = document.createElement('div'); vg.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,8,20,.38) 100%)'; document.body.appendChild(vg); }
 scene.add(sun);
 
 // ---------------------------------------------------------------- noise / terrain height
@@ -219,8 +224,8 @@ function buildWorld() {
     };
     treeMats.push(m); return m;
   };
-  const shadeVerts = (g, base, top, y0, y1, under = 0.55) => {   // bottom/inside darker, tips lighter, undersides darkest
-    g = g.toNonIndexed(); g.computeVertexNormals();
+  const shadeVerts = (g, base, top, y0, y1, under = 0.55, smoothN = false) => {   // bottom/inside darker, tips lighter, undersides darkest
+    g = g.toNonIndexed(); if (!smoothN) g.computeVertexNormals();
     const P = g.attributes.position, N = g.attributes.normal, col = new Float32Array(P.count * 3), c = new THREE.Color(), cb = new THREE.Color(base), ct = new THREE.Color(top);
     for (let i = 0; i < P.count; i++) {
       const t = clamp((P.getY(i) - y0) / (y1 - y0), 0, 1), r = Math.hypot(P.getX(i), P.getZ(i));
@@ -242,14 +247,24 @@ function buildWorld() {
   };
   const pineG = shadeVerts(tierStack(4, 2.5, 1.0, 4.6, 2.4, 2.1), 0x1f3d1c, 0x6fae4f, 2.4, 13);
   const firG = shadeVerts(tierStack(3, 3.1, 1.7, 4.2, 1.2, 1.6), 0x22421d, 0x79b356, 1.2, 9);
-  const blobParts = []; for (let i = 0; i < 5; i++) { const ig = new THREE.IcosahedronGeometry(rand(1.6, 2.3), 0); jag(ig, 0.25); ig.translate(rand(-1.3, 1.3), rand(4.2, 6.4), rand(-1.3, 1.3)); blobParts.push(ig); }
-  const blobG = shadeVerts(mergeGeo(blobParts), 0x2f4f1e, 0x9cc46a, 3, 8.5, 0.7);
+  // broadleaf: several soft, lumpy leaf clumps (smooth-shaded) on a forked trunk
+  const clump = (r, x, y, z) => {
+    let g = new THREE.IcosahedronGeometry(r, 1); g.deleteAttribute('normal'); g.deleteAttribute('uv'); g = mergeVertices(g);
+    const P = g.attributes.position, v = V();
+    for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i); const n = v.clone().normalize(); v.addScaledVector(n, rand(-0.12, 0.2) * r); P.setXYZ(i, v.x, v.y * 0.78, v.z); }
+    g.translate(x, y, z); g.computeVertexNormals(); return g;
+  };
+  const crown = [clump(2.0, 0, 6.1, 0), clump(1.6, 1.5, 5.4, 0.5), clump(1.55, -1.4, 5.5, -0.4), clump(1.5, 0.3, 5.2, -1.5), clump(1.45, -0.4, 5.3, 1.5), clump(1.5, 0.2, 7.3, 0.2)];
+  const crownG = shadeVerts(mergeGeo(crown), 0x33602a, 0xb8dc78, 3.6, 8.6, 0.72, true);
+  const br = []; for (const [ax, az] of [[0.55, 0.3], [-0.5, -0.25], [0.1, -0.6]]) { const c = new THREE.CylinderGeometry(0.1, 0.2, 2.4, 5, 1, true); c.translate(0, 1.2, 0); c.rotateZ(-ax); c.rotateX(az); c.translate(0, 3.3, 0); br.push(c); }
+  const branchG = shadeVerts(mergeGeo(br), 0x3b2a1d, 0x6a5038, 3, 5.6, 1);
+  const blobG = mergeColored([crownG, branchG]);
   const trunkG = shadeVerts(new THREE.CylinderGeometry(0.22, 0.42, 4.6, 6, 1, true).translate(0, 2.3, 0), 0x3b2a1d, 0x6a5038, 0, 4.6, 1);
   const species = [
-    { g: pineG, w: 0.5, s: [0.8, 1.45] }, { g: firG, w: 0.3, s: [0.8, 1.25] }, { g: blobG, w: 0.2, s: [0.75, 1.2] },
+    { g: pineG, w: 0.5, s: [0.8, 1.45] }, { g: firG, w: 0.3, s: [0.8, 1.25] }, { g: blobG, w: 0.2, s: [0.8, 1.25], smooth: true },
   ];
   const N_TREES = 850;
-  const sp = species.map(o => ({ ...o, mesh: new THREE.InstancedMesh(o.g, swayMat({}), N_TREES), n: 0 }));
+  const sp = species.map(o => ({ ...o, mesh: new THREE.InstancedMesh(o.g, swayMat(o.smooth ? { flatShading: false } : {}), N_TREES), n: 0 }));
   const trunks = new THREE.InstancedMesh(trunkG, swayMat({}), N_TREES);
   const shadowTex = canvasTex(64, (g, s2) => { const gr = g.createRadialGradient(s2 / 2, s2 / 2, 2, s2 / 2, s2 / 2, s2 / 2); gr.addColorStop(0, 'rgba(0,0,0,.6)'); gr.addColorStop(0.6, 'rgba(0,0,0,.3)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, s2, s2); });
   const shG = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
@@ -281,6 +296,11 @@ function buildWorld() {
     rocks.setMatrixAt(i, m4);
   }
   scene.add(rocks);
+}
+function mergeColored(list) {   // like mergeGeo but keeps vertex colors
+  const pos = [], nor = [], col = [];
+  for (const g of list) { pos.push(...g.attributes.position.array); nor.push(...g.attributes.normal.array); col.push(...g.attributes.color.array); }
+  const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); out.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); out.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); return out;
 }
 function mergeGeo(list) {
   const pos = [], nor = [];
@@ -345,6 +365,7 @@ function explosion(at, size = 1, quiet) {
   burst(p, 18 * size, 5 * size, 2.2, 3 * size, 9 * size, COL.smoke, 0.55, 1.2, -2.5, smoke);
   addDebris(p, 10 * size, size);
   shake = Math.max(shake, 0.35 * size); if (!quiet) sfx.boom(size);
+  lightFlash(p, 0xff9a40, 1400 * size);
 }
 const confettiCols = [0xff4d6d, 0xffd23f, 0x3bceac, 0x6a4cff, 0xff8c42, 0x4cc9f0].map(C);
 function confetti(at) {
@@ -655,47 +676,21 @@ function covMaterial(src, opts) {
   };
   return m;
 }
-// ---- battle wear: Poly Haven 'green_metal_rust', divided by its own average color so only the
-// rust pits, drip streaks and scratches remain; projected from three sides onto any model.
-const rustAvg = new THREE.Vector3(1, 1, 1);
-function initWear() {
-  const im = TEX.rust_img, c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); g.drawImage(im, 0, 0, 64, 64);
-  const d = g.getImageData(0, 0, 64, 64).data; let r = 0, gg = 0, b = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; }
-  const n = d.length / 4, lin = v => Math.pow(v / n / 255, 2.2);   // texture is sampled in linear space
-  rustAvg.set(lin(r), lin(gg), lin(b));
-}
-function addWear(m, amt, scale) {
-  if (m.userData.worn) return; m.userData.worn = true;   // materials are shared between meshes: wear once
-  const prev = m.onBeforeCompile, prevKey = prev ? prev.toString() : '';
+// soft cool rim light on enemies so they pop against the hills
+function addRim(m, col, k) {
+  if (m.userData.rim) return; m.userData.rim = true;
+  const prev = m.onBeforeCompile, prevKey = prev.toString();
   m.onBeforeCompile = (sh, rd) => {
-    if (prev) prev(sh, rd);
-    sh.uniforms.rustTex = { value: TEX.rust }; sh.uniforms.rustAvg = { value: rustAvg }; sh.uniforms.wearAmt = { value: amt }; sh.uniforms.wearScale = { value: scale };
-    if (!sh.vertexShader.includes('varying vec3 vOP;')) sh.vertexShader = 'varying vec3 vOP; varying vec3 vON;\n' + sh.vertexShader.replace('#include <skinning_vertex>', '#include <skinning_vertex>\n vOP = transformed * vec3(length(modelMatrix[0].xyz), length(modelMatrix[1].xyz), length(modelMatrix[2].xyz)); vON = objectNormal;   // after skinning, in world meters, whatever units the model uses');
-    sh.fragmentShader = (sh.fragmentShader.includes('varying vec3 vOP;') ? '' : 'varying vec3 vOP; varying vec3 vON;\n') + 'uniform sampler2D rustTex; uniform vec3 rustAvg; uniform float wearAmt, wearScale;\n' +
-      sh.fragmentShader.replace('#include <roughnessmap_fragment>', `
-        vec3 wb = pow(abs(normalize(vON)), vec3(4.0)); wb /= (wb.x + wb.y + wb.z);
-        vec3 wt = texture2D(rustTex, vOP.zy * wearScale).rgb * wb.x + texture2D(rustTex, vOP.xz * wearScale).rgb * wb.y + texture2D(rustTex, vOP.xy * wearScale).rgb * wb.z;
-        vec3 wr = clamp(wt / rustAvg, 0.0, 2.4);
-        float dev = clamp(length(wr - 1.0) * 0.8, 0.0, 1.0);
-        diffuseColor.rgb *= mix(vec3(1.0), wr, wearAmt);
-        #include <roughnessmap_fragment>
-        roughnessFactor = clamp(roughnessFactor + dev * 0.55 * wearAmt, 0.0, 1.0);
-        #ifdef USE_METALNESSMAP
-        #endif`)
-      .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n metalnessFactor *= 1.0 - dev * 0.6 * wearAmt;');
+    prev.call(m, sh, rd);
+    sh.uniforms.rimCol = { value: new THREE.Color(col) }; sh.uniforms.rimK = { value: k };
+    sh.fragmentShader = 'uniform vec3 rimCol; uniform float rimK;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>',
+      '#include <emissivemap_fragment>\n totalEmissiveRadiance += rimCol * rimK * pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 3.0);');
   };
-  m.customProgramCacheKey = () => 'wear' + amt + '|' + prevKey;
+  m.customProgramCacheKey = () => 'rim|' + prevKey;
 }
-function wearModels() {
-  initWear();
-  const apply = (root, amt, scale, test) => root.traverse(n => { if (!n.isMesh) return; const mats = Array.isArray(n.material) ? n.material : [n.material];
-    for (const m of mats) if (m.isMeshStandardMaterial && !m.transparent && (!test || test(m))) addWear(m, amt, scale); });
-  apply(M.warthog, 0.75, 0.55);                                        // scales are per meter
-  apply(M.turret, 0.85, 1.1);
-  for (const k of ['ghost', 'banshee', 'shade', 'watchtower']) {
-    apply(M[k], 0.9, 0.6, m => /metl_|rubr_/.test(m.name));            // bare metal: full wear
-    apply(M[k], 0.4, 0.6, m => /COV_/.test(m.name));                   // alien alloy: light scuffs
-  }
+function rimModels() {
+  for (const k of ['grunt', 'elite', 'ghost', 'banshee', 'shade', 'watchtower'])
+    M[k].traverse(n => { if (n.isMesh && n.material.isMeshStandardMaterial && !n.material.transparent) addRim(n.material, 0xa8d4ff, k === 'elite' ? 0.45 : 0.35); });
 }
 function covenantFinish() {
   covTex = makeCovTex();
@@ -776,6 +771,22 @@ const G = {
 };
 const enemies = [], bolts = [], popups = [];
 let shake = 0, hurtFlash = 0, shieldFlash = 0; const slashFx = [];
+const ENEMY_SHADOW = { grunt: 2.2, elite: 3.6, ghost: 5.2, shade: 3.8, cell: 2.2 };
+let enemyShadows = null;
+function makeEnemyShadows() {
+  const tex = canvasTex(64, (g, s2) => { const gr = g.createRadialGradient(s2 / 2, s2 / 2, 2, s2 / 2, s2 / 2, s2 / 2); gr.addColorStop(0, 'rgba(0,0,0,.55)'); gr.addColorStop(0.65, 'rgba(0,0,0,.25)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, s2, s2); });
+  enemyShadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }), 96);
+  enemyShadows.instanceMatrix.setUsage(THREE.DynamicDrawUsage); enemyShadows.frustumCulled = false; scene.add(enemyShadows);
+}
+function updateEnemyShadows() {
+  let n = 0;
+  for (const e of enemies) {
+    const base = ENEMY_SHADOW[e.kind]; if (!base || e.dead || n >= 96) continue;
+    const gy = groundH(e.pos.x, e.pos.z), h = Math.max(0, e.pos.y - gy), k = clamp(1 - h / 8, 0.15, 1) * (e.alive ? 1 : 0.6);
+    _m4.compose(_v1.set(e.pos.x, gy + 0.07, e.pos.z), _q.identity(), _v2.set(base * k, 1, base * k)); enemyShadows.setMatrixAt(n++, _m4);
+  }
+  enemyShadows.count = n; enemyShadows.instanceMatrix.needsUpdate = true;
+}
 const input = { x: 0.5, y: 0.5, down: false, a: false, b: false, off: false, clicked: null };
 
 // ---------------------------------------------------------------- enemies
@@ -1164,6 +1175,7 @@ function plasmaBlast(at) {
   burst(p, 14, 5, 2, 3, 9, C(0x5a7a9a), 0.45, 1.2, -2, smoke);
   const m = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0x6ff0ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
   m.position.copy(p); m.position.y -= 0.8; scene.add(m); rings.push({ m, t: 0 });
+  lightFlash(p, 0x5fe8ff, 2600);
   shake = Math.max(shake, 0.45); sfx.plasmaBoom();
   pendingBlasts.push({ p: p.clone(), t: 0.12 });
 }
@@ -1266,6 +1278,7 @@ function fireRound() {
   tMuzzle.getWorldPosition(muzzleP);
   tracers.push({ a: muzzleP.clone(), b: end, t: 0 });
   fx.spawn(muzzleP, _v1.copy(vehicleFwd).multiplyScalar(4), 0.06, 2.2, 0.6, COL.muzzle, 1);
+  lightFlash(muzzleP, 0xffc070, rand(18, 32));
   if (hit.e) { G.hits++; hit.e.damage(1, hit.idx, end); burst(end, 4, 7, 0.25, 0.5, 0.1, hit.e.shieldHp > 0 ? COL.blue : COL.spark, 1, 3); }
   else if (hit.bolt) { hit.bolt.life = 0; G.score += 50; popups.push({ p: end.clone(), t: 0, text: '+50', col: '#8fd0ff' }); burst(end, 10, 6, 0.3, 1, 0.2, hit.bolt.color, 1, 3); sfx.boltZip(); }
   else if (hit.ground) { burst(end, 3, 3, 0.5, 0.8, 2.2, COL.dust, 0.7, 2, 3, smoke); if (Math.random() < 0.4) burst(end, 3, 5, 0.2, 0.3, 0.1, COL.spark, 1, 2, 10); }
@@ -1460,6 +1473,20 @@ function drawHUD(dt, fps) {
     hx.strokeStyle = `rgba(255,230,240,${k})`; hx.lineWidth = 8 * u * k; hx.beginPath(); hx.moveTo(-L2, 0); hx.lineTo(L2, 0); hx.stroke();
     hx.restore();
   }
+  if (G.state !== 'loading') {   // sun glare + lens ghosts when the sun is on screen
+    _v1.copy(sun.position).normalize().multiplyScalar(2000).add(camera.position).project(camera);
+    if (_v1.z < 1 && Math.abs(_v1.x) < 1.3 && Math.abs(_v1.y) < 1.3) {
+      const sx = (_v1.x * 0.5 + 0.5) * W, sy = (-_v1.y * 0.5 + 0.5) * H, edge = clamp(1.3 - Math.max(Math.abs(_v1.x), Math.abs(_v1.y)), 0, 1);
+      hx.save(); hx.globalCompositeOperation = 'lighter';
+      const gr = hx.createRadialGradient(sx, sy, 0, sx, sy, 260 * u); gr.addColorStop(0, `rgba(255,240,210,${0.55 * edge})`); gr.addColorStop(0.25, `rgba(255,210,150,${0.18 * edge})`); gr.addColorStop(1, 'rgba(255,200,140,0)');
+      hx.fillStyle = gr; hx.fillRect(sx - 260 * u, sy - 260 * u, 520 * u, 520 * u);
+      for (const [f, r, a] of [[0.45, 34, 0.08], [0.9, 18, 0.1], [1.35, 60, 0.05]]) {
+        const gx = sx + (W / 2 - sx) * f * 2, gy = sy + (H / 2 - sy) * f * 2;
+        hx.fillStyle = `rgba(190,220,255,${a * edge})`; hx.beginPath(); hx.arc(gx, gy, r * u, 0, 7); hx.fill();
+      }
+      hx.restore();
+    }
+  }
   if (G.state === 'loading') { if (!drawLogo(H * 0.4, W * 0.75)) title('HOG RUN', H * 0.4, 110 * u); hx.font = font(26 * u, 600); hx.fillStyle = '#dff'; hx.fillText(`LOADING ${Math.round(loadP * 100)}%`, W / 2, H * 0.55); return; }
   if (G.state === 'play' || G.state === 'results') {
     // shields + health (top center)
@@ -1577,7 +1604,8 @@ function frame(now) {
   skyGroup.position.copy(camera.position);
 
   windTime.value += rawDt;
-  updateBlasts(dt); updateBolts(dt); fx.update(dt); smoke.update(dt); updateTracers(dt); updateDebris(dt);
+  flashI *= Math.exp(-rawDt * 10); flashLight.intensity = flashI;
+  updateBlasts(dt); updateBolts(dt); if (enemyShadows) updateEnemyShadows(); fx.update(dt); smoke.update(dt); updateTracers(dt); updateDebris(dt);
   shake = Math.max(0, shake - dt * 1.5); hurtFlash = Math.max(0, hurtFlash - dt * 2); shieldFlash = Math.max(0, shieldFlash - dt * 3);
 
   renderer.render(scene, camera);
@@ -1599,8 +1627,8 @@ function frame(now) {
   requestAnimationFrame(frame);
   await loadTextures();
   await loadModels(p => loadP = p);
-  rigBipeds(); prepWheels(); covenantFinish(); wearModels();
-  buildWorld(); buildVehicle(); resetRun();
+  rigBipeds(); prepWheels(); covenantFinish(); rimModels();
+  buildWorld(); buildVehicle(); makeEnemyShadows(); resetRun();
   G.state = 'title'; resize(); music.play('title'); music.unlock();   // plays at once if the browser allows autoplay
   if (DEBUG) debugHooks();
 })();
