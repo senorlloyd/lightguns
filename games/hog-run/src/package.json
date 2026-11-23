@@ -1,0 +1,2 @@
+{ "name": "hog-run", "private": true, "description": "HOG RUN source. Run ./build.sh to rebuild ../game.js and ../assets.js",
+  "dependencies": { "three": "0.170.0", "esbuild": "^0.24.0" } }
