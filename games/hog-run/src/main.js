@@ -403,7 +403,7 @@ function updateDebris(dt) {
 const sfx = (() => {
   let ac = null, master, noise, eng = null;
   const buf = {};
-  let gunMode = 'idle', fireLoop = null, spinSrc = null;
+  let gunMode = 'idle', fireLoop = null, spinSrc = null, boomCount = 0;
   function init() {
     if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
     ac = new (window.AudioContext || window.webkitAudioContext)();
@@ -450,7 +450,12 @@ const sfx = (() => {
     engine(v) { if (eng) { eng.g.gain.setTargetAtTime(Math.min(1, v) * 0.55, ac.currentTime, 0.25); eng.s.playbackRate.setTargetAtTime(0.78 + 0.32 * Math.min(1, v), ac.currentTime, 0.4); } },
     plasma() { tone(0.16, 1100 * rand(0.85, 1.15), 280, 0.12); },
     boltZip() { tone(0.12, 700, 1600, 0.08, 'square'); },
-    boom(s = 1) { nz(0.9 * s, 1400, 60, 0.7); tone(0.5, 90, 30, 0.6 * s, 'sine'); },
+    boom(s = 1) {
+      const pick = a => a[Math.floor(Math.random() * a.length)];
+      const name = s >= 1.5 ? pick(['boom_xl', 'boom_l1', 'boom_l2']) : s >= 0.95 ? pick(['boom_l1', 'boom_l2', 'boom_m1']) : s >= 0.55 ? pick(['boom_m1', 'boom_m2']) : 'boom_s';
+      if (buf[name] && boomCount < 5) { const n = play(name, clamp(0.45 + s * 0.35, 0.4, 1), rand(0.9, 1.08)); if (n) { boomCount++; n.s.onended = () => boomCount--; } }
+      else if (!buf[name]) { nz(0.9 * s, 1400, 60, 0.7); tone(0.5, 90, 30, 0.6 * s, 'sine'); }
+    },
     hitEnemy() { tone(0.04, 1800, 1200, 0.05, 'square'); },
     shieldHit() { nz(0.18, 4200, 1500, 0.35, 'bandpass', 3); tone(0.12, 520, 300, 0.15, 'square'); },
     hurt() { nz(0.25, 800, 120, 0.5); },
@@ -458,7 +463,7 @@ const sfx = (() => {
     overheat() { nz(1.1, 7000, 2500, 0.25, 'highpass'); },
     pop() { tone(0.12, 500, 1400, 0.25, 'square'); nz(0.15, 3000, 800, 0.2); },
     ui() { tone(0.1, 660, 990, 0.18, 'square'); },
-    plasmaBoom() { nz(1.2, 2200, 70, 0.8); tone(0.7, 220, 40, 0.7, 'sine'); tone(0.45, 1800, 200, 0.18, 'sawtooth'); },
+    plasmaBoom() { if (buf.boom_l2) play(Math.random() < 0.5 ? 'boom_l2' : 'boom_m1', 0.85, rand(1.05, 1.2)); else nz(1.2, 2200, 70, 0.8); tone(0.7, 220, 40, 0.5, 'sine'); tone(0.45, 1800, 200, 0.22, 'sawtooth'); },
     swordCharge() { tone(0.55, 180, 900, 0.16, 'sawtooth'); nz(0.55, 400, 3000, 0.12, 'bandpass', 4); },
     swordWhoosh() { nz(0.28, 700, 3500, 0.45, 'bandpass', 2); tone(0.25, 500, 1400, 0.1, 'sine'); },
     swordHit() { nz(0.35, 3000, 300, 0.6); tone(0.3, 160, 50, 0.5, 'square'); },
@@ -613,8 +618,8 @@ function makeCovTex() {
     ctx.strokeStyle = col; ctx.lineWidth = w;
     for (let k = -1; k <= 1; k++) for (let j = -1; j <= 1; j++) { const ox = x + k * S, oy = y + j * S; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.bezierCurveTo(ox + p[0], oy + p[1], ox + p[2], oy + p[3], ox + p[4], oy + p[5]); ctx.stroke(); } };
   for (let i = 0; i < 30; i++) curve(d, 7, 'rgba(20,20,20,.75)');      // organic panel seams
-  for (let i = 0; i < 12; i++) curve(q, 7, 'rgba(255,255,255,1)');                               // glowing light lines
-  for (let i = 0; i < 40; i++) { q.fillStyle = 'rgba(255,255,255,.9)'; q.beginPath(); q.arc(Math.random() * S, Math.random() * S, 3 + Math.random() * 5, 0, 7); q.fill(); }
+  for (let i = 0; i < 6; i++) curve(q, 6, 'rgba(255,255,255,1)');                               // glowing light lines
+  for (let i = 0; i < 18; i++) { q.fillStyle = 'rgba(255,255,255,.9)'; q.beginPath(); q.arc(Math.random() * S, Math.random() * S, 3 + Math.random() * 5, 0, 7); q.fill(); }
   const a = d.getImageData(0, 0, S, S).data, b = q.getImageData(0, 0, S, S).data, out = g.createImageData(S, S);
   for (let i = 0; i < S * S; i++) { out.data[i * 4] = a[i * 4]; out.data[i * 4 + 1] = b[i * 4]; out.data[i * 4 + 2] = 0; out.data[i * 4 + 3] = 255; }
   g.putImageData(out, 0, 0);
@@ -625,7 +630,7 @@ function covMaterial(src, opts) {
   m.name = src.name;
   m.onBeforeCompile = sh => {
     sh.uniforms.covTex = { value: covTex }; sh.uniforms.covScale = { value: opts.scale || 0.7 }; sh.uniforms.glowAmt = { value: opts.glowAmt || 0 };
-    sh.vertexShader = 'varying vec3 vOP; varying vec3 vON;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vOP = position; vON = normal;');
+    sh.vertexShader = 'varying vec3 vOP; varying vec3 vON;\n' + sh.vertexShader.replace('#include <skinning_vertex>', '#include <skinning_vertex>\n vOP = transformed * vec3(length(modelMatrix[0].xyz), length(modelMatrix[1].xyz), length(modelMatrix[2].xyz)); vON = objectNormal;   // after skinning, in world meters, whatever units the model uses');
     sh.fragmentShader = 'uniform sampler2D covTex; uniform float covScale, glowAmt; varying vec3 vOP; varying vec3 vON; vec4 covT;\n' + sh.fragmentShader
       .replace('#include <map_fragment>', `#include <map_fragment>
         vec3 bw = pow(abs(normalize(vON)), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);
@@ -636,6 +641,48 @@ function covMaterial(src, opts) {
   };
   return m;
 }
+// ---- battle wear: Poly Haven 'green_metal_rust', divided by its own average color so only the
+// rust pits, drip streaks and scratches remain; projected from three sides onto any model.
+const rustAvg = new THREE.Vector3(1, 1, 1);
+function initWear() {
+  const im = TEX.rust_img, c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); g.drawImage(im, 0, 0, 64, 64);
+  const d = g.getImageData(0, 0, 64, 64).data; let r = 0, gg = 0, b = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; }
+  const n = d.length / 4, lin = v => Math.pow(v / n / 255, 2.2);   // texture is sampled in linear space
+  rustAvg.set(lin(r), lin(gg), lin(b));
+}
+function addWear(m, amt, scale) {
+  if (m.userData.worn) return; m.userData.worn = true;   // materials are shared between meshes: wear once
+  const prev = m.onBeforeCompile, prevKey = prev ? prev.toString() : '';
+  m.onBeforeCompile = (sh, rd) => {
+    if (prev) prev(sh, rd);
+    sh.uniforms.rustTex = { value: TEX.rust }; sh.uniforms.rustAvg = { value: rustAvg }; sh.uniforms.wearAmt = { value: amt }; sh.uniforms.wearScale = { value: scale };
+    if (!sh.vertexShader.includes('varying vec3 vOP;')) sh.vertexShader = 'varying vec3 vOP; varying vec3 vON;\n' + sh.vertexShader.replace('#include <skinning_vertex>', '#include <skinning_vertex>\n vOP = transformed * vec3(length(modelMatrix[0].xyz), length(modelMatrix[1].xyz), length(modelMatrix[2].xyz)); vON = objectNormal;   // after skinning, in world meters, whatever units the model uses');
+    sh.fragmentShader = (sh.fragmentShader.includes('varying vec3 vOP;') ? '' : 'varying vec3 vOP; varying vec3 vON;\n') + 'uniform sampler2D rustTex; uniform vec3 rustAvg; uniform float wearAmt, wearScale;\n' +
+      sh.fragmentShader.replace('#include <roughnessmap_fragment>', `
+        vec3 wb = pow(abs(normalize(vON)), vec3(4.0)); wb /= (wb.x + wb.y + wb.z);
+        vec3 wt = texture2D(rustTex, vOP.zy * wearScale).rgb * wb.x + texture2D(rustTex, vOP.xz * wearScale).rgb * wb.y + texture2D(rustTex, vOP.xy * wearScale).rgb * wb.z;
+        vec3 wr = clamp(wt / rustAvg, 0.0, 2.4);
+        float dev = clamp(length(wr - 1.0) * 0.8, 0.0, 1.0);
+        diffuseColor.rgb *= mix(vec3(1.0), wr, wearAmt);
+        #include <roughnessmap_fragment>
+        roughnessFactor = clamp(roughnessFactor + dev * 0.55 * wearAmt, 0.0, 1.0);
+        #ifdef USE_METALNESSMAP
+        #endif`)
+      .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n metalnessFactor *= 1.0 - dev * 0.6 * wearAmt;');
+  };
+  m.customProgramCacheKey = () => 'wear' + amt + '|' + prevKey;
+}
+function wearModels() {
+  initWear();
+  const apply = (root, amt, scale, test) => root.traverse(n => { if (!n.isMesh) return; const mats = Array.isArray(n.material) ? n.material : [n.material];
+    for (const m of mats) if (m.isMeshStandardMaterial && !m.transparent && (!test || test(m))) addWear(m, amt, scale); });
+  apply(M.warthog, 0.75, 0.55);                                        // scales are per meter
+  apply(M.turret, 0.85, 1.1);
+  for (const k of ['ghost', 'banshee', 'shade', 'watchtower']) {
+    apply(M[k], 0.9, 0.6, m => /metl_|rubr_/.test(m.name));            // bare metal: full wear
+    apply(M[k], 0.4, 0.6, m => /COV_/.test(m.name));                   // alien alloy: light scuffs
+  }
+}
 function covenantFinish() {
   covTex = makeCovTex();
   for (const k of ['shade', 'ghost', 'banshee', 'watchtower']) {
@@ -643,7 +690,7 @@ function covenantFinish() {
       if (!n.isMesh) return;
       n.geometry = toCreasedNormals(n.geometry, THREE.MathUtils.degToRad(35));
       const src = n.material, nm = src.name || '';
-      if (/COV_/.test(nm)) n.material = covMaterial(src, { metal: 0.6, rough: 0.3, glowAmt: 4, scale: 0.5 });
+      if (/COV_/.test(nm)) n.material = covMaterial(src, { metal: 0.6, rough: 0.3, glowAmt: 0.55, scale: 0.45 });
       else if (/metl_|rubr_/.test(nm)) n.material = covMaterial(src, { metal: 0.75, rough: 0.4, scale: 0.9 });
       else if (/glow_/.test(nm)) n.material = new THREE.MeshBasicMaterial({ color: 0x8fdcff, toneMapped: false });
       else if (/scrn_/.test(nm)) n.material = new THREE.MeshBasicMaterial({ color: 0xff8fe0, toneMapped: false });
@@ -680,7 +727,7 @@ function gait(r, ph, amp, opts = {}) {
 function cloneModel(name, skinned) {
   const o = skinned ? skClone(M[name]) : M[name].clone(true);
   const mats = [];
-  o.traverse(c => { if (c.isMesh) { c.material = c.material.clone(); mats.push(c.material); if (c.isSkinnedMesh) c.frustumCulled = false; } });
+  o.traverse(c => { if (c.isMesh) { const src = c.material; c.material = src.clone(); c.material.onBeforeCompile = src.onBeforeCompile; c.material.customProgramCacheKey = src.customProgramCacheKey; mats.push(c.material); if (c.isSkinnedMesh) c.frustumCulled = false; } });
   o.userData.mats = mats;
   return o;
 }
@@ -1053,7 +1100,7 @@ function elite(p) {
     for (const sm of this.swordMats) { sm.emissive.setRGB(1, 0.2, 0.35); sm.emissiveIntensity = glow; }
     if (this.mode === 'windup' && Math.random() < 0.6) fx.spawn(this.obj.getObjectByName('swordTip').getWorldPosition(_v1), V(rand(-1, 1), rand(0, 2), rand(-1, 1)), 0.3, 0.8, 0.1, C(0xff5a8a), 1, 1);
   };
-  e.die = function () { burst(_v1.copy(this.pos).add(V(0, 1.5, 0)), 40, 8, 1, 1, 3, COL.blue, 1, 2); sfx.boom(1.3); win(); };
+  e.die = function () { burst(_v1.copy(this.pos).add(V(0, 1.5, 0)), 40, 8, 1, 1, 3, COL.blue, 1, 2); sfx.boom(1.6); win(); };
   G.boss = e;
   return e;
 }
@@ -1535,7 +1582,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   await loadTextures();
   await loadModels(p => loadP = p);
-  rigBipeds(); prepWheels(); covenantFinish();
+  rigBipeds(); prepWheels(); covenantFinish(); wearModels();
   buildWorld(); buildVehicle(); resetRun();
   G.state = 'title'; resize(); music.play('title'); music.unlock();   // plays at once if the browser allows autoplay
   if (DEBUG) debugHooks();
