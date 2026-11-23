@@ -26,7 +26,7 @@ CREDITS (also on the in-game CREDITS screen)
   "Halo Warthog" by pinto36 (CC BY 4.0)
   HALO MEGA Grunt, Ghost, Banshee, Shade, Watchtower, Vulcan Turret by TimoPatton (CC BY-SA 4.0)
   "halo wars banished elite with energy sword" by YeeHawRussell (CC BY 4.0)   - all from sketchfab.com
-  Sky & ground textures: Poly Haven (CC0)
+  Sky, ground & battle-wear (green_metal_rust) textures: Poly Haven (CC0)
   Music (Pixabay): divineawakeningfrequency, AtlasAudio, luis_humanoide, sergepavkinmusic,
                    kulakovka, nastelbom, leberch
 Halo is a Microsoft trademark; this is an unaffiliated fan project.
