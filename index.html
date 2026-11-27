@@ -11,6 +11,8 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<!-- games/catalog.js is written by tools/scan-games.py (start-arcade.sh runs it). It lists every folder in games/. -->
+<script src="games/catalog.js"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -1426,7 +1428,18 @@ DEMOS.holdthegate = {
   }
 };
 
-function newDemo(key) { const d = DEMOS[key] || DEMOS.shatter; const s = { t: 0, p: [], txt: [], score: 0 }; d.init(s); return { d, s }; }
+/* games without a built-in demo: slowly pan across their card art (thumb.png or the generated title card) */
+DEMOS.card = {
+  init(s) { s.zoom = rnd(0, 1) < 0.5 ? 1 : -1; s.sp = 0; },
+  update(s, dt) { s.sp -= dt; if (s.sp <= 0) { s.sp = rnd(0.05, 0.15); addParts(s.p, rnd(0, VW), VH + 10, 1, { ang: -Math.PI / 2, spread: 0.3, min: 40, max: 120, col: ['#ffffff', '#ffe14d'], size: 4, life: 6, drag: 0 }); } updParts(s.p, dt); },
+  draw(c, s) {
+    const g = s.game, z = 1.08 + 0.06 * Math.sin(s.t * 0.25 * s.zoom), w = VW * z, h = VH * z;
+    c.fillStyle = '#000'; c.fillRect(0, 0, VW, VH);
+    if (g && (g.art || g.card)) c.drawImage(g.art || g.card, (VW - w) / 2 + Math.sin(s.t * 0.2) * 30, (VH - h) / 2 + Math.cos(s.t * 0.17) * 20, w, h);
+    drawParts(c, s.p, true);
+  }
+};
+function newDemo(key, game) { const d = DEMOS[key] || DEMOS.card; const s = { t: 0, p: [], txt: [], score: 0, game }; d.init(s); return { d, s }; }
 function stepDemo(D, dt) {
   D.s.t += dt; D.d.update(D.s, dt);
   for (const t of D.s.txt) { t.life -= dt * 0.8; t.y -= 40 * dt; } D.s.txt = D.s.txt.filter(t => t.life > 0);
@@ -1439,6 +1452,32 @@ function drawDemo(c, D) {
 const demoCanvas = document.createElement('canvas'); demoCanvas.width = VW; demoCanvas.height = VH; const dctx = demoCanvas.getContext('2d');
 
 /* ======================== ART & ASSETS ======================== */
+/* ---- drop-in games: merge games/catalog.js (made by tools/scan-games.py) into GAMES ----
+   Any games/<folder>/ with an index.html shows up. Optional files in that folder:
+     game.json    {"title","genre","blurb","players":[1,2],"colors":["#hex","#hex"],"hidden":true}
+     thumb.png    card art (.png/.jpg/.jpeg/.webp also work)
+     preview.mp4  gameplay clip used as the demo (.webm also works)                         */
+(function mergeCatalog() {
+  const cat = Array.isArray(window.ARCADE_CATALOG) ? window.ARCADE_CATALOG : [];
+  const byFile = {}; GAMES.forEach(g => { byFile[g.file] = g; });
+  const hsl = (h, s, l) => { s /= 100; l /= 100; const k = n => (n + h / 30) % 12, a = s * Math.min(l, 1 - l), f = n => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1)); return '#' + [f(0), f(8), f(4)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join(''); };
+  const hueOf = str => { let h = 0; for (const ch of str) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % 360; };
+  const pretty = f => f.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  for (const c of cat) {
+    const file = 'games/' + c.folder + '/index.html', meta = c.meta || {};
+    let g = byFile[file];
+    if (!g) {
+      const h = hueOf(c.folder);
+      g = { title: pretty(c.folder), file, players: [1, 2], genre: 'LIGHT GUN GAME', blurb: 'Pick up a gun and find out.', colors: [hsl(h, 90, 58), hsl((h + 150) % 360, 85, 55)], demo: null, banner: null, video: null, added: true };
+      GAMES.push(g); byFile[file] = g;
+    }
+    for (const k of ['title', 'genre', 'blurb', 'players', 'colors', 'hidden']) if (meta[k] !== undefined) g[k] = meta[k];
+    if (g.genre) g.genre = String(g.genre).toUpperCase();
+    if (c.thumb && !g.banner) g.banner = 'games/' + c.folder + '/' + c.thumb;
+    if (c.video && !g.video) g.video = 'games/' + c.folder + '/' + c.video;
+  }
+  for (let i = GAMES.length - 1; i >= 0; i--) if (GAMES[i].hidden) GAMES.splice(i, 1);
+})();
 const N = GAMES.length;
 GAMES.forEach((g, i) => {
   g.rgb = g.colors.map(hex2rgb); g.card = document.createElement('canvas'); g.card.width = 960; g.card.height = 540;
@@ -1461,6 +1500,8 @@ function renderCard(g) {
     c.fillStyle = tg; c.fillText(g.title.toUpperCase(), w / 2, h / 2); c.lineWidth = 3; c.strokeStyle = '#fff'; c.strokeText(g.title.toUpperCase(), w / 2, h / 2);
     c.font = `bold 34px ${MONO}`; c.fillStyle = 'rgba(255,255,255,.85)'; c.fillText(g.genre, w / 2, h / 2 + fs * 0.75);
   }
+  if (!g.art) { g.art = document.createElement('canvas'); g.art.width = w; g.art.height = h; }
+  g.art.getContext('2d').drawImage(g.card, 0, 0); // copy without the players badge, used by the card demo
   c.fillStyle = 'rgba(0,0,0,.6)'; rrect(c, 24, h - 74, 260, 50, 25); c.fill(); c.font = `bold 26px ${MONO}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#fff'; c.fillText(playersLabel(g), 154, h - 49);
 }
 /* static noise frames */
@@ -1477,7 +1518,7 @@ let state = 'wait', T = 0, lastAct = 0; // wait -> (power) -> boot -> select
 const returning = !CONFIG.fullBootEveryTime && store('ofa_booted') === '1';
 const boot = { t: 0, len: returning ? 2.4 : 7.6, short: returning, lines: [], typed: 0, logoAt: returning ? 0.4 : 3.6, bangAt: returning ? 1.2 : 5.0, banged: false, dropped: 0 };
 let selTarget = 0; { const ls = parseInt(lstore('ofa_last'), 10); if (!isNaN(ls)) selTarget = mod(ls, N); }
-let selPos = selTarget, preview = newDemo(GAMES[mod(selTarget, N)].demo), previewStatic = 0.4;
+let selPos = selTarget, preview = newDemo(GAMES[mod(selTarget, N)].demo, GAMES[mod(selTarget, N)]), previewStatic = 0.4;
 const players = [{ joined: false, flash: 0 }, { joined: false, flash: 0 }];
 let p2Need = 0, launch = null, credits = 0, coinFlash = 0, shake = 0;
 const theme = { a: GAMES[mod(selTarget, N)].rgb[0].slice(), b: GAMES[mod(selTarget, N)].rgb[1].slice() };
@@ -1563,7 +1604,7 @@ function navInput(d) {
   if (state === 'select') nav(d);
 }
 function nav(d) { selTarget += d; sfx.move(); onSel(); }
-function onSel() { const g = GAMES[mod(selTarget, N)]; preview = newDemo(g.demo); previewStatic = 0.35; sfx.stat(); playPreviewVideo(); }
+function onSel() { const g = GAMES[mod(selTarget, N)]; preview = newDemo(g.demo, g); previewStatic = 0.35; sfx.stat(); playPreviewVideo(); }
 function playPreviewVideo() { GAMES.forEach((g, i) => { if (g.vid) { if (i === mod(selTarget, N) || (state === 'attract' && i === attract.idx)) { try { g.vid.currentTime = 0; g.vid.play().catch(() => { }); } catch (e) { } } else g.vid.pause(); } }); }
 
 function shoot(a) {
@@ -1643,12 +1684,12 @@ function update(dt) {
     if (T - lastAct > CONFIG.idleSeconds) enterAttract();
   } else if (state === 'attract') {
     attract.t += dt; attract.stat = Math.max(0, attract.stat - dt);
-    if (attract.phase === 'logo' && attract.t > 5) { attract.phase = 'game'; attract.t = 0; attract.stat = 0.45; attract.demo = newDemo(GAMES[attract.idx].demo); sfx.stat(); playPreviewVideo(); }
+    if (attract.phase === 'logo' && attract.t > 5) { attract.phase = 'game'; attract.t = 0; attract.stat = 0.45; attract.demo = newDemo(GAMES[attract.idx].demo, GAMES[attract.idx]); sfx.stat(); playPreviewVideo(); }
     else if (attract.phase === 'game') {
       stepDemo(attract.demo, Math.min(dt, 0.04));
       if (attract.t > CONFIG.attractSecondsPerGame) {
         attract.shown++; attract.idx = mod(attract.idx + 1, N); attract.t = 0; attract.stat = 0.45; sfx.stat();
-        if (attract.shown % N === 0) attract.phase = 'logo'; else { attract.demo = newDemo(GAMES[attract.idx].demo); playPreviewVideo(); }
+        if (attract.shown % N === 0) attract.phase = 'logo'; else { attract.demo = newDemo(GAMES[attract.idx].demo, GAMES[attract.idx]); playPreviewVideo(); }
       }
     }
     music.level = 0.7;
